@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reparación - 𝐃𝐋𝐈𝐅𝐄</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <style>
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #0d0d0d;
+        color: white;
+        padding-top: 70px;
+    }
+
+    /* NAVBAR */
+    .navbar {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        background: rgba(11,11,11,0.85);
+        backdrop-filter: blur(10px);
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .logo {
+        font-size: 1.2rem;
+    }
+
+    .nav-links {
+        list-style: none;
+        display: flex;
+        gap: 20px;
+    }
+
+    .nav-links a {
+        text-decoration: none;
+        color: #ccc;
+    }
+
+    .menu-toggle {
+        display: none;
+        font-size: 26px;
+        cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+        .menu-toggle {
+            display: block;
+        }
+
+        .nav-links {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            background: rgba(11,11,11,0.95);
+            flex-direction: column;
+            align-items: center;
+            display: none;
+            padding: 20px 0;
+        }
+
+        .nav-links.active {
+            display: flex;
+        }
+    }
+
+    /* FORM */
+    .form-section {
+        padding: 40px 20px;
+        max-width: 500px;
+        margin: auto;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    input, select, textarea {
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+    }
+
+    button {
+        padding: 12px;
+        border: none;
+        border-radius: 10px;
+        background: #0071e3;
+        color: white;
+        cursor: pointer;
+    }
+    </style>
+</head>
+
+<body>
+
+<nav class="navbar">
+    <h2 class="logo">𝐃𝐋𝐈𝐅𝐄</h2>
+    <ul class="nav-links">
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="ventas.html">Ventas</a></li>
+        <li><a href="reparacion.html">Reparación</a></li>
+        <li><a href="accesorios.html">Accesorios</a></li>
+    </ul>
+    <div class="menu-toggle">☰</div>
+</nav>
+
+<section class="form-section">
+    <h1>Agendar Reparación</h1>
+
+    <form id="repairForm">
+
+        <label>Selecciona tu dispositivo</label>
+        <select id="device" required></select>
+
+        <label>Modelo</label>
+        <select id="model" required></select>
+
+        <label>Problema del equipo</label>
+        <select id="issue" required>
+            <option value="">-- Seleccionar problema --</option>
+            <option value="battery">Batería</option>
+            <option value="screen">Pantalla</option>
+            <option value="other">Otro</option>
+        </select>
+
+        <label>Descripción (opcional)</label>
+        <textarea id="description"></textarea>
+
+        <label>Nombre completo</label>
+        <input type="text" id="name">
+
+        <label>Teléfono</label>
+        <input type="tel" id="phone">
+
+        <label>Email</label>
+        <input type="email" id="email">
+
+        <button type="submit">Enviar solicitud</button>
+
+    </form>
+</section>
+
+<script>
+// CATÁLOGO
+const CATALOG = {
+    iphone: ["iPhone 16 Pro Max","iPhone 16 Pro","iPhone 16","iPhone 15 Pro Max","iPhone 15 Pro","iPhone 15"],
+    ipad: ["iPad Pro","iPad Air","iPad Mini"],
+    macbook: ["MacBook Pro M3","MacBook Air M2"],
+    watch: ["Apple Watch Ultra","Series 9"],
+    imac: ["iMac M3"]
+};
+
+const deviceSelect = document.getElementById("device");
+const modelSelect = document.getElementById("model");
+
+function loadDevices() {
+    deviceSelect.innerHTML = `<option value="">-- Seleccionar dispositivo --</option>`;
+    Object.keys(CATALOG).forEach(device => {
+        const option = document.createElement("option");
+        option.value = device;
+        option.textContent = device.toUpperCase();
+        deviceSelect.appendChild(option);
+    });
+}
+
+function loadModels() {
+    const device = deviceSelect.value;
+    modelSelect.innerHTML = `<option value="">-- Seleccionar modelo --</option>`;
+
+    if (CATALOG[device]) {
+        CATALOG[device].forEach(model => {
+            const option = document.createElement("option");
+            option.value = model;
+            option.textContent = model;
+            modelSelect.appendChild(option);
+        });
+    }
+}
+
+deviceSelect.addEventListener("change", loadModels);
+
+document.getElementById("repairForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const message = `Solicitud de reparación - DLIFE`;
+    window.open(`https://wa.me/18292890243?text=${encodeURIComponent(message)}`);
+});
+
+loadDevices();
+</script>
+
+<!-- NAVBAR FIX -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const toggle = document.querySelector('.menu-toggle');
+    const navLinks = document.querySelector('.nav-links');
+
+    if (toggle && navLinks) {
+        toggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+    }
+});
+</script>
+
+</body>
+</html>
