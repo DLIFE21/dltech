@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ventas - DLIFE Technologies</title>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0d0d0d;
+    color: white;
+}
+
+/* NAVBAR BASE */
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: rgba(11,11,11,0.85);
+    backdrop-filter: blur(10px);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* LOGO */
+.logo {
+    font-size: 1.2rem;
+    color: white;
+}
+
+/* LINKS */
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: #cccccc;
+    transition: 0.25s ease;
+}
+
+.nav-links a:hover {
+    color: #ffffff;
+}
+
+/* BOTÓN HAMBURGUESA */
+.menu-toggle {
+    display: none;
+    font-size: 26px;
+    color: white;
+    cursor: pointer;
+}
+
+/* 📱 RESPONSIVE (CLAVE DEL ARREGLO) */
+@media (max-width: 768px) {
+
+    .menu-toggle {
+        display: block;
+    }
+
+    .nav-links {
+        position: absolute;
+        top: 60px;
+        left: 0;
+        width: 100%;
+        background: rgba(11,11,11,0.95);
+        flex-direction: column;
+        align-items: center;
+        display: none;
+        padding: 20px 0;
+        gap: 15px;
+    }
+
+    .nav-links.active {
+        display: flex;
+    }
+}
+
+.fade-out { opacity: 0; }
+
+.right {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+select {
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #1c1c1e;
+    color: white;
+}
+
+.price {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.status {
+    font-size: 14px;
+}
+
+button {
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: #0071e3;
+    color: white;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<nav class="navbar">
+    <h2 class="logo">𝐃𝐋𝐈𝐅𝐄</h2>
+    <ul class="nav-links">
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="ventas.html">Ventas</a></li>
+        <li><a href="reparacion.html">Reparación</a></li>
+        <li><a href="accesorios.html">Accesorios</a></li>
+    </ul>
+</nav>
+
+<div class="container">
+
+    <div class="left">
+        <img id="productImage" src="">
+    </div>
+
+    <div class="right">
+        <h1>Comprar dispositivo</h1>
+
+        <select id="device"></select>
+        <select id="model"></select>
+
+        <div class="price" id="productPrice">RD$0</div>
+        <div class="status" id="productStatus"></div>
+
+        <button onclick="buyNow()">Comprar por WhatsApp</button>
+    </div>
+
+</div>
+
+<!-- 🔥 STORE GLOBAL -->
+<script src="store.js"></script>
+
+<script src="store.js"></script>
+
+<script>
+// ================= VARIABLES =================
+const deviceSelect = document.getElementById("device");
+const modelSelect = document.getElementById("model");
+const image = document.getElementById("productImage");
+const price = document.getElementById("productPrice");
+const status = document.getElementById("productStatus");
+
+// ================= TIPOS =================
+function loadTypes() {
+    deviceSelect.innerHTML = "";
+
+    const tipos = [...new Set(STORE.dispositivos.map(p => p.tipo))];
+
+    tipos.forEach((tipo, index) => {
+        const option = document.createElement("option");
+        option.value = tipo;
+        option.textContent = tipo;
+        deviceSelect.appendChild(option);
+
+        if (index === 0) deviceSelect.value = tipo;
+    });
+
+    loadModels();
+}
+
+// ================= MODELOS =================
+function loadModels() {
+    const tipo = deviceSelect.value;
+    modelSelect.innerHTML = "";
+
+    const filtered = STORE.dispositivos.filter(p => p.tipo === tipo);
+
+    filtered.forEach((product, index) => {
+        const option = document.createElement("option");
+        option.value = product.id;
+
+        // 👇 muestra agotados también
+        option.textContent = product.name + (product.stock === 0 ? " (Agotado)" : "");
+
+        modelSelect.appendChild(option);
+
+        if (index === 0) modelSelect.value = product.id;
+    });
+
+    updateProduct();
+}
+
+// ================= UPDATE =================
+function updateProduct() {
+    const id = parseInt(modelSelect.value);
+    const product = STORE.dispositivos.find(p => p.id === id);
+
+    if (!product) return;
+
+    image.src = product.image;
+    price.textContent = "RD$" + product.price.toLocaleString();
+
+    if (product.stock > 5) {
+        status.textContent = "Disponible";
+        status.style.color = "#00ff88";
+    } else if (product.stock > 0) {
+        status.textContent = "Pocas unidades";
+        status.style.color = "orange";
+    } else {
+        status.textContent = "Agotado";
+        status.style.color = "red";
+    }
+}
+
+// ================= COMPRA =================
+function buyNow() {
+    const id = parseInt(modelSelect.value);
+    const product = STORE.dispositivos.find(p => p.id === id);
+
+    if (!product) return;
+
+    const message = `Hola, quiero comprar el ${product.name} por RD$${product.price}`;
+    window.open(`https://wa.me/18292890243?text=${encodeURIComponent(message)}`);
+}
+
+// ================= EVENTOS =================
+deviceSelect.addEventListener("change", loadModels);
+modelSelect.addEventListener("change", updateProduct);
+
+// ================= INIT =================
+loadTypes();
+</script>
+<script>
+const toggle = document.querySelector('.menu-toggle');
+const navLinks = document.querySelector('.nav-links');
+
+toggle.addEventListener('click', () => {
+    navLinks.classList.toggle('active');
+});
+</script>
+</body>
+</html>
