@@ -23,7 +23,7 @@ const STORE = {
     { id: 104, name: "iPhone 15", tipo: "iPhone", price: 22950, stock: 8, image: "https://i.imgur.com/2rbwdyN.png" },
     { id: 105, name: "iPhone 14", tipo: "iPhone", price: 26100, stock: 0, image: "https://i.imgur.com/FI6Z7pO.png" },
     { id: 106, name: "iPhone 13", tipo: "iPhone", price: 16500, stock: 4, image: "https://i.imgur.com/FBxVP3I.png" },
-    { id: 201, name: "MacBook Air M2", tipo: "MacBook", price: 65000, stock: 4, image: "https://via.placeholder.com/200" },
-    { id: 301, name: "iPad 10", tipo: "iPad", price: 28000, stock: 6, image: "https://via.placeholder.com/200" }
+    { id: 201, name: "MacBook Air M4", tipo: "MacBook", price: 65000, stock: 4, image: "https://i.imgur.com/z0XkEtS.png" },
+    { id: 301, name: "iPad 10", tipo: "iPad", price: 28000, stock: 6, image: "https://i.imgur.com/5iQJ8Ny.png" }
   ]
 };
