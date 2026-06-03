@@ -93,9 +93,61 @@
       color: #6c6c70;
       font-size: 0.8rem;
     }
+    
+    /* Estilos adicionales para asegurar que el menú hamburguesa funcione */
+    .navbar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: rgba(10, 10, 12, 0.82);
+      backdrop-filter: blur(20px);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      border-bottom: 0.5px solid rgba(255,255,255,0.08);
+    }
+    .nav-links {
+      list-style: none;
+      display: flex;
+      gap: 28px;
+      transition: all 0.3s ease;
+    }
+    .nav-links.active {
+      display: flex !important;
+    }
+    .menu-toggle {
+      display: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: white;
+      background: none;
+      border: none;
+    }
     @media (max-width: 768px) {
       .hero-slider { height: 60vh; }
       .slide-content h2 { font-size: 1.4rem; }
+      .menu-toggle {
+        display: block;
+      }
+      .nav-links {
+        position: absolute;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        background: rgba(10,10,12,0.98);
+        backdrop-filter: blur(20px);
+        flex-direction: column;
+        align-items: center;
+        display: none;
+        padding: 20px 0;
+        gap: 20px;
+        z-index: 999;
+      }
+      .nav-links.active {
+        display: flex !important;
+      }
     }
   </style>
 </head>
@@ -108,16 +160,16 @@
       <li><a href="reparacion.html">Reparación</a></li>
       <li><a href="accesorios.html">Accesorios</a></li>
     </ul>
-    <!-- Enlace a Instagram en navbar (versión móvil/escritorio) -->
+    <!-- Enlace a Instagram en navbar -->
     <a href="https://www.instagram.com/dl_technologies01?igsh=Y3N0ZDFhZ29zOXQ5&utm_source=qr" target="_blank" style="color:white; margin-right: 20px; font-size: 1.4rem;" data-no-fade>
       <i class="fab fa-instagram"></i>
     </a>
-    <div class="menu-toggle">☰</div>
+    <button class="menu-toggle" aria-label="Menú">☰</button>
   </nav>
 
-  <!-- SLIDER DE IMÁGENES (cambia las URLs por las de tus productos/instagram) -->
+  <!-- SLIDER DE IMÁGENES -->
   <div class="hero-slider">
-    <div class="slide active" style="background-image: url('https://i.imgur.com/uhLEMsQ.jpeg      ');">
+    <div class="slide active" style="background-image: url('https://i.imgur.com/uhLEMsQ.jpeg');">
       <div class="slide-content">
         <h2>MacBook Pro M4</h2>
         <p>Potencia y diseño en tus manos</p>
@@ -138,7 +190,7 @@
     <div class="slider-dots" id="sliderDots"></div>
   </div>
 
-  <!-- Sección de servicios (igual que antes) -->
+  <!-- Sección de servicios -->
   <section class="services">
     <h2>Nuestros Servicios</h2>
     <div class="cards">
@@ -162,7 +214,6 @@
     <div class="social-links">
       <a href="https://wa.me/18292890243" target="_blank" data-no-fade><i class="fab fa-whatsapp"></i></a>
       <a href="https://www.instagram.com/dl_technologies01?igsh=Y3N0ZDFhZ29zOXQ5&utm_source=qr" target="_blank" data-no-fade><i class="fab fa-instagram"></i></a>
-      <!-- Puedes añadir más: Facebook, Twitter, etc. -->
     </div>
     <div class="footer-text">
       © 2025 DLIFE Technologies — Especialistas Apple<br>
@@ -170,51 +221,81 @@
     </div>
   </footer>
 
-  <script src="store.js"></script>
-  <script src="main.js"></script>
   <script>
-    // SLIDER AUTOMÁTICO
+    // ========== MENÚ HAMBURGUESA ==========
+    // Asegurar que el menú funcione en todos los dispositivos
+    document.addEventListener('DOMContentLoaded', function() {
+      const menuToggle = document.querySelector('.menu-toggle');
+      const navLinks = document.querySelector('.nav-links');
+      
+      if (menuToggle && navLinks) {
+        // Función para toggle del menú
+        function toggleMenu() {
+          navLinks.classList.toggle('active');
+        }
+        
+        // Evento click para abrir/cerrar
+        menuToggle.addEventListener('click', toggleMenu);
+        
+        // Cerrar menú al hacer clic en un enlace (mejor experiencia en móvil)
+        const links = navLinks.querySelectorAll('a');
+        links.forEach(link => {
+          link.addEventListener('click', function() {
+            navLinks.classList.remove('active');
+          });
+        });
+        
+        // Cerrar menú al hacer clic fuera (opcional, mejora UX)
+        document.addEventListener('click', function(event) {
+          const isClickInsideNav = navLinks.contains(event.target);
+          const isClickOnToggle = menuToggle.contains(event.target);
+          
+          if (!isClickInsideNav && !isClickOnToggle && navLinks.classList.contains('active')) {
+            navLinks.classList.remove('active');
+          }
+        });
+      }
+    });
+
+    // ========== SLIDER AUTOMÁTICO ==========
     const slides = document.querySelectorAll('.slide');
     const dotsContainer = document.getElementById('sliderDots');
     let currentIndex = 0;
     let interval;
 
-    // Crear dots
-    slides.forEach((_, i) => {
-      const dot = document.createElement('div');
-      dot.classList.add('dot');
-      if (i === 0) dot.classList.add('active');
-      dot.addEventListener('click', () => goToSlide(i));
-      dotsContainer.appendChild(dot);
-    });
-
-    const dots = document.querySelectorAll('.dot');
-
-    function goToSlide(index) {
-      slides.forEach((slide, i) => {
-        slide.classList.toggle('active', i === index);
-        if (dots[i]) dots[i].classList.toggle('active', i === index);
+    if (slides.length > 0 && dotsContainer) {
+      // Crear dots
+      slides.forEach((_, i) => {
+        const dot = document.createElement('div');
+        dot.classList.add('dot');
+        if (i === 0) dot.classList.add('active');
+        dot.addEventListener('click', () => goToSlide(i));
+        dotsContainer.appendChild(dot);
       });
-      currentIndex = index;
+
+      const dots = document.querySelectorAll('.dot');
+
+      function goToSlide(index) {
+        slides.forEach((slide, i) => {
+          slide.classList.toggle('active', i === index);
+          if (dots[i]) dots[i].classList.toggle('active', i === index);
+        });
+        currentIndex = index;
+        resetInterval();
+      }
+
+      function nextSlide() {
+        let next = (currentIndex + 1) % slides.length;
+        goToSlide(next);
+      }
+
+      function resetInterval() {
+        clearInterval(interval);
+        interval = setInterval(nextSlide, 5000);
+      }
+
       resetInterval();
     }
-
-    function nextSlide() {
-      let next = (currentIndex + 1) % slides.length;
-      goToSlide(next);
-    }
-
-    function resetInterval() {
-      clearInterval(interval);
-      interval = setInterval(nextSlide, 5000);
-    }
-
-    // Iniciar slider
-    if (slides.length > 0) {
-      resetInterval();
-    }
-
-    // Añadir el ícono de Instagram también en el menú móvil (opcional, pero ya está en navbar)
   </script>
 </body>
 </html>
