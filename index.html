@@ -3,297 +3,601 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>DLIFE Technologies | Apple Specialists</title>
-  <link rel="stylesheet" href="styles.css">
-  <!-- Font Awesome 6 (para íconos de redes) -->
+  <title>DLIFE Technologies | Especialistas Apple</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100;14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    /* Estilos adicionales solo para el slider y footer */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { 
+      font-family: 'Inter', -apple-system, 'SF Pro Text', sans-serif; 
+      background: #000000; 
+      color: #f5f5f7; 
+      line-height: 1.6;
+      letter-spacing: -0.2px;
+    }
+    a { text-decoration: none; color: inherit; }
+    
+    /* Navbar */
+    .navbar {
+      position: fixed; top: 0; left: 0; width: 100%;
+      background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px);
+      padding: 14px 48px; display: flex; justify-content: space-between; align-items: center;
+      z-index: 1100; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .logo { 
+      font-size: 1.5rem; font-weight: 600; 
+      letter-spacing: -1px; 
+      color: #f5f5f7;
+    }
+    .nav-links { 
+      list-style: none; display: flex; gap: 3rem; 
+    }
+    .nav-links li a { 
+      font-weight: 400; font-size: 0.95rem; 
+      color: #a1a1a6; 
+      transition: color 0.3s ease; 
+      position: relative;
+    }
+    .nav-links li a:hover, .nav-links li a.active { 
+      color: #f5f5f7; 
+    }
+    .nav-links li a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: #0071e3;
+      opacity: 0;
+      animation: slideIn 0.3s ease forwards;
+    }
+    @keyframes slideIn { from { opacity: 0; transform: scaleX(0); } to { opacity: 1; transform: scaleX(1); } }
+    .nav-icon { 
+      font-size: 1.3rem; 
+      color: #f5f5f7; 
+      transition: opacity 0.3s ease;
+      margin-left: auto;
+    }
+    .nav-icon:hover { opacity: 0.7; }
+    .menu-toggle { 
+      display: none; 
+      background: transparent; 
+      border: none; 
+      font-size: 1.6rem; 
+      color: #f5f5f7; 
+      cursor: pointer; 
+      padding: 8px;
+      z-index: 1101; 
+    }
+
+    /* Hero Slider */
     .hero-slider {
       position: relative;
       width: 100%;
-      height: 80vh;
+      height: 90vh;
+      min-height: 600px;
       overflow: hidden;
-      margin-top: 0;
+      margin-top: 60px;
+      background: #000000;
     }
     .slide {
       position: absolute;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       opacity: 0;
-      transition: opacity 1s ease-in-out;
+      transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
       background-size: cover;
       background-position: center;
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
-      color: white;
+    }
+    .slide::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 100%);
+      z-index: 1;
     }
     .slide.active {
       opacity: 1;
-      z-index: 1;
+      z-index: 10;
     }
     .slide-content {
-      background: rgba(0,0,0,0.4);
-      backdrop-filter: blur(8px);
-      padding: 20px 30px;
-      border-radius: 48px;
-      max-width: 80%;
+      max-width: 700px;
+      padding: 3rem;
+      z-index: 2;
+      animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .slide-content h2 {
-      font-size: 2rem;
-      margin-bottom: 10px;
+      font-size: clamp(2.2rem, 7vw, 3.5rem);
+      font-weight: 700;
+      margin-bottom: 1rem;
+      letter-spacing: -1px;
+      line-height: 1.1;
     }
+    .slide-content p {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      color: #d0d0d4;
+      font-weight: 300;
+      letter-spacing: -0.3px;
+    }
+    .btn-slide {
+      background: #0071e3;
+      color: white;
+      padding: 12px 32px;
+      border-radius: 980px;
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: inline-block;
+      letter-spacing: -0.2px;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-slide:hover {
+      background: #0056b3;
+      transform: scale(1.02);
+    }
+
+    /* Slider Dots */
     .slider-dots {
       position: absolute;
-      bottom: 20px;
+      bottom: 40px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 12px;
-      z-index: 2;
+      gap: 10px;
+      z-index: 20;
     }
     .dot {
       width: 8px;
       height: 8px;
-      background: rgba(255,255,255,0.5);
-      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
-      transition: 0.3s;
     }
     .dot.active {
-      background: white;
-      width: 20px;
+      width: 28px;
+      background: #ffffff;
+      border-radius: 4px;
     }
-    /* Footer estilo Apple */
+    .dot:hover { background: rgba(255, 255, 255, 0.8); }
+
+    /* Services Section */
+    .services {
+      padding: 6rem 4rem;
+      background: #000000;
+      text-align: center;
+    }
+    .services h2 {
+      font-size: clamp(2rem, 5vw, 2.8rem);
+      font-weight: 600;
+      margin-bottom: 1rem;
+      letter-spacing: -1px;
+    }
+    .services > p {
+      color: #a1a1a6;
+      font-size: 1rem;
+      margin-bottom: 4rem;
+      font-weight: 300;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+    .card {
+      background: rgba(26, 26, 28, 0.8);
+      backdrop-filter: blur(10px);
+      border-radius: 28px;
+      padding: 2.5rem;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: left;
+    }
+    .card:hover {
+      background: rgba(44, 44, 46, 0.9);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-8px);
+    }
+    .card-icon {
+      font-size: 2.8rem;
+      color: #0071e3;
+      margin-bottom: 1.5rem;
+      display: inline-block;
+    }
+    .card h3 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.5px;
+    }
+    .card p {
+      color: #a1a1a6;
+      font-size: 0.95rem;
+      font-weight: 300;
+      line-height: 1.7;
+    }
+
+    /* Footer */
     .apple-footer {
-      background: #0f0f10;
-      padding: 40px 20px 30px;
-      margin-top: 60px;
-      border-top: 0.5px solid rgba(255,255,255,0.1);
+      background: #000000;
+      padding: 4rem 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
       text-align: center;
     }
     .social-links {
       display: flex;
       justify-content: center;
-      gap: 32px;
-      margin-bottom: 24px;
+      gap: 2.5rem;
+      margin-bottom: 2rem;
     }
     .social-links a {
-      color: #aaa;
-      font-size: 1.8rem;
-      transition: color 0.2s, transform 0.2s;
+      font-size: 1.5rem;
+      color: #a1a1a6;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
     }
     .social-links a:hover {
       color: #ffffff;
-      transform: translateY(-3px);
+      background: rgba(0, 113, 227, 0.15);
+      transform: translateY(-4px);
     }
     .footer-text {
       color: #6c6c70;
       font-size: 0.8rem;
+      font-weight: 300;
+      line-height: 1.8;
     }
-    
-    /* Estilos adicionales para asegurar que el menú hamburguesa funcione */
-    .navbar {
-      position: fixed;
-      top: 0;
-      width: 100%;
-      background: rgba(10, 10, 12, 0.82);
-      backdrop-filter: blur(20px);
-      padding: 14px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 1000;
-      border-bottom: 0.5px solid rgba(255,255,255,0.08);
-    }
-    .nav-links {
-      list-style: none;
-      display: flex;
-      gap: 28px;
-      transition: all 0.3s ease;
-    }
-    .nav-links.active {
-      display: flex !important;
-    }
-    .menu-toggle {
-      display: none;
-      font-size: 28px;
-      cursor: pointer;
-      color: white;
-      background: none;
-      border: none;
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .navbar { padding: 12px 32px; }
+      .nav-links { gap: 2rem; }
+      .services { padding: 4rem 2rem; }
+      .slide-content { padding: 2rem; }
     }
     @media (max-width: 768px) {
-      .hero-slider { height: 60vh; }
-      .slide-content h2 { font-size: 1.4rem; }
-      .menu-toggle {
-        display: block;
-      }
+      .navbar { padding: 12px 20px; }
+      .menu-toggle { display: block; }
       .nav-links {
-        position: absolute;
-        top: 70px;
+        position: fixed;
+        top: 60px;
         left: 0;
         width: 100%;
-        background: rgba(10,10,12,0.98);
+        background: rgba(0, 0, 0, 0.98);
         backdrop-filter: blur(20px);
         flex-direction: column;
         align-items: center;
+        gap: 2rem;
+        padding: 2rem 1rem;
         display: none;
-        padding: 20px 0;
-        gap: 20px;
-        z-index: 999;
+        z-index: 1000;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        max-height: calc(100vh - 60px);
+        overflow-y: auto;
       }
-      .nav-links.active {
-        display: flex !important;
+      .nav-links.active { display: flex; }
+      .nav-icon { display: none; }
+      .hero-slider { 
+        height: 75vh; 
+        margin-top: 55px;
+        min-height: 500px;
       }
+      .slide-content {
+        padding: 1.5rem;
+        width: 90%;
+      }
+      .slide-content h2 { font-size: clamp(1.8rem, 5vw, 2.5rem); }
+      .slide-content p { font-size: 0.95rem; }
+      .services { padding: 3rem 1.5rem; }
+      .services h2 { font-size: 1.8rem; margin-bottom: 2rem; }
+      .cards { gap: 1.5rem; grid-template-columns: 1fr; }
+      .card { padding: 2rem; }
+      .slider-dots { bottom: 20px; gap: 8px; }
+      .dot { width: 6px; height: 6px; }
+      .dot.active { width: 24px; }
+      .social-links { gap: 1.5rem; }
+    }
+    @media (max-width: 480px) {
+      .navbar { padding: 10px 16px; }
+      .logo { font-size: 1.3rem; }
+      .services { padding: 2.5rem 1rem; }
+      .services h2 { font-size: 1.5rem; }
+      .slide-content h2 { font-size: clamp(1.5rem, 5vw, 2rem); }
+      .card { padding: 1.5rem; }
+      .card-icon { font-size: 2.2rem; }
+      .card h3 { font-size: 1.2rem; }
+    }
+
+    /* ===== Velo de revelacion (cuenta atras) ===== */
+    body.veiled { overflow: hidden; }
+    .reveal-veil {
+      position: fixed; inset: 0; z-index: 9999;
+      background: radial-gradient(circle at 50% 38%, #1a1a1c 0%, #000000 70%);
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 2rem;
+      transition: opacity 0.8s ease;
+    }
+    .reveal-veil.fade-out { opacity: 0; pointer-events: none; }
+    .reveal-content { max-width: 480px; }
+    .reveal-logo { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; color: #f5f5f7; margin-bottom: 2.5rem; }
+    .reveal-pulse { width: 10px; height: 10px; background: #0071e3; border-radius: 50%; margin: 0 auto 2rem; animation: pulseGlow 2s infinite; }
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 0 rgba(0,113,227,0.6); }
+      70% { box-shadow: 0 0 0 16px rgba(0,113,227,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,113,227,0); }
+    }
+    .reveal-title { font-size: clamp(2.1rem, 7vw, 3.2rem); font-weight: 700; letter-spacing: -1px; margin-bottom: 0.5rem; }
+    .reveal-subtitle { font-size: 1.05rem; color: #a1a1a6; font-weight: 300; margin-bottom: 2.5rem; letter-spacing: -0.2px; }
+    .reveal-countdown { display: flex; justify-content: center; gap: 1.5rem; }
+    .countdown-unit { display: flex; flex-direction: column; align-items: center; min-width: 56px; }
+    .countdown-unit span { font-size: 1.8rem; font-weight: 700; letter-spacing: -1px; }
+    .countdown-unit label { font-size: 0.65rem; color: #6c6c70; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 0.3rem; }
+    @media (max-width: 480px) {
+      .reveal-countdown { gap: 1rem; }
+      .countdown-unit { min-width: 48px; }
+      .countdown-unit span { font-size: 1.4rem; }
     }
   </style>
 </head>
 <body>
+  <!-- Velo de revelacion: oculta la pagina hasta la fecha programada -->
+  <div id="revealVeil" class="reveal-veil">
+    <div class="reveal-content">
+      <div class="reveal-logo">DLIFE</div>
+      <div class="reveal-pulse"></div>
+      <h1 class="reveal-title">Ya viene.</h1>
+      <p class="reveal-subtitle">Ya está llegando a ti en breve.</p>
+      <div class="reveal-countdown">
+        <div class="countdown-unit"><span id="cdDays">00</span><label>Días</label></div>
+        <div class="countdown-unit"><span id="cdHours">00</span><label>Horas</label></div>
+        <div class="countdown-unit"><span id="cdMinutes">00</span><label>Min</label></div>
+        <div class="countdown-unit"><span id="cdSeconds">00</span><label>Seg</label></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      // Fecha de revelacion: 26 de junio de 2026, 8:26 PM (hora Republica Dominicana, UTC-4)
+      const revealDate = new Date('2026-06-26T20:26:00-04:00').getTime();
+      const veil = document.getElementById('revealVeil');
+      if (!veil) return;
+
+      function pad(n) { return String(n).padStart(2, '0'); }
+
+      function tick() {
+        const now = Date.now();
+        const diff = revealDate - now;
+
+        if (diff <= 0) {
+          veil.classList.add('fade-out');
+          document.body.classList.remove('veiled');
+          clearInterval(timer);
+          setTimeout(() => veil.remove(), 900);
+          return;
+        }
+
+        document.body.classList.add('veiled');
+        const days = Math.floor(diff / 86400000);
+        const hours = Math.floor((diff % 86400000) / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+
+        document.getElementById('cdDays').textContent = pad(days);
+        document.getElementById('cdHours').textContent = pad(hours);
+        document.getElementById('cdMinutes').textContent = pad(minutes);
+        document.getElementById('cdSeconds').textContent = pad(seconds);
+      }
+
+      tick();
+      const timer = setInterval(tick, 1000);
+    })();
+  </script>
+
+  <!-- Navigation -->
   <nav class="navbar">
-    <h2 class="logo">𝐃𝐋𝐈𝐅𝐄</h2>
+    <div class="logo">DLIFE</div>
     <ul class="nav-links">
       <li><a href="index.html" class="active">Inicio</a></li>
       <li><a href="ventas.html">Ventas</a></li>
       <li><a href="reparacion.html">Reparación</a></li>
       <li><a href="accesorios.html">Accesorios</a></li>
     </ul>
-    <!-- Enlace a Instagram en navbar -->
-    <a href="https://www.instagram.com/dl_technologies01?igsh=Y3N0ZDFhZ29zOXQ5&utm_source=qr" target="_blank" style="color:white; margin-right: 20px; font-size: 1.4rem;" data-no-fade>
+    <a href="https://www.instagram.com/dl_technologies01" target="_blank" class="nav-icon" aria-label="Instagram">
       <i class="fab fa-instagram"></i>
     </a>
-    <button class="menu-toggle" aria-label="Menú">☰</button>
+    <button class="menu-toggle" aria-label="Menu" aria-expanded="false">☰</button>
   </nav>
 
-  <!-- SLIDER DE IMÁGENES -->
+  <!-- Hero Slider -->
   <div class="hero-slider">
-    <div class="slide active" style="background-image: url('https://i.imgur.com/uhLEMsQ.jpeg');">
+    <!-- Slide 1: MacBook Pro M4 -->
+    <div class="slide active" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://i.imgur.com/uhLEMsQ.jpeg');">
       <div class="slide-content">
         <h2>MacBook Pro M4</h2>
-        <p>Potencia y diseño en tus manos</p>
+        <p>Potencia incomparable. Hasta 22 horas de batería.</p>
+        <a href="ventas.html" class="btn-slide">Explorar →</a>
       </div>
     </div>
-    <div class="slide" style="background-image: url('https://i.imgur.com/z0XkEtS.png');">
+    <!-- Slide 2: MacBook Air M4 -->
+    <div class="slide" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://i.imgur.com/z0XkEtS.png');">
       <div class="slide-content">
         <h2>MacBook Air M4</h2>
-        <p>Rendimiento ultra rápido</p>
+        <p>Ultraligero y extraordinariamente capaz.</p>
+        <a href="ventas.html" class="btn-slide">Ver modelos →</a>
       </div>
     </div>
-    <div class="slide" style="background-image: url('https://i.imgur.com/5F5zoWi.jpeg');">
+    <!-- Slide 3: Accesorios -->
+    <div class="slide" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://i.imgur.com/5F5zoWi.jpeg');">
       <div class="slide-content">
-        <h2>Accesorios originales</h2>
-        <p>Mejora tu experiencia Apple</p>
+        <h2>Accesorios Certificados</h2>
+        <p>Amplifica tu experiencia con lo mejor del ecosistema Apple.</p>
+        <a href="accesorios.html" class="btn-slide">Descubrir →</a>
       </div>
     </div>
+    <!-- Slide 4: Adaptador 35W -->
+    <div class="slide" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://i.imgur.com/EampaUu.jpeg');">
+      <div class="slide-content">
+        <h2>Adaptador 35W Dual USB-C</h2>
+        <p>Carga potente en un tamaño compacto.</p>
+        <a href="accesorios.html" class="btn-slide">Conocer más →</a>
+      </div>
+    </div>
+    <!-- Slide 5: Belkin UltraCharge -->
+    <div class="slide" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://i.imgur.com/pjwcpVF.jpeg');">
+      <div class="slide-content">
+        <h2>Belkin UltraCharge Pro</h2>
+        <p>Carga magnética convertible para tu espacio.</p>
+        <a href="accesorios.html" class="btn-slide">Ver detalle →</a>
+      </div>
+    </div>
+    <!-- Slide 6: AirTag 4 pack -->
+    <div class="slide" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://i.imgur.com/Zx3verj.jpeg');">
+      <div class="slide-content">
+        <h2>AirTag 4 pack</h2>
+        <p>Localiza tus objetos en la red Encontrar.</p>
+        <a href="accesorios.html" class="btn-slide">Comprar →</a>
+      </div>
+    </div>
+    <!-- Slide 7: Aqara Smart Lock -->
+    <div class="slide" style="background-image: linear-gradient(135deg, rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://i.imgur.com/AIJN8cU.jpeg');">
+      <div class="slide-content">
+        <h2>Aqara Smart Lock U400</h2>
+        <p>Seguridad inteligente compatible con HomeKit.</p>
+        <a href="accesorios.html" class="btn-slide">Explorar →</a>
+      </div>
+    </div>
+    <!-- Slider Dots -->
     <div class="slider-dots" id="sliderDots"></div>
   </div>
 
-  <!-- Sección de servicios -->
+  <!-- Services Section -->
   <section class="services">
-    <h2>Nuestros Servicios</h2>
+    <h2>Nuestros servicios</h2>
+    <p>Todo lo que necesitas para tu universo Apple</p>
     <div class="cards">
       <div class="card">
-        <h3>Venta de dispositivos</h3>
-        <p>Equipos Apple originales listos para ofrecer el máximo rendimiento.</p>
+        <div class="card-icon"><i class="fas fa-laptop"></i></div>
+        <h3>Venta de equipos</h3>
+        <p>Los últimos modelos de Apple con garantía, disponibilidad inmediata y precio competitivo.</p>
       </div>
       <div class="card">
-        <h3>Reparación especializada</h3>
-        <p>Diagnóstico preciso y soluciones confiables para tus dispositivos.</p>
+        <div class="card-icon"><i class="fas fa-tools"></i></div>
+        <h3>Reparación exprés</h3>
+        <p>Diagnóstico preciso, reparaciones garantizadas y servicio rápido sin comprometer la calidad.</p>
       </div>
       <div class="card">
-        <h3>Accesorios</h3>
-        <p>Complementos de calidad para potenciar tu experiencia Apple.</p>
+        <div class="card-icon"><i class="fas fa-headphones"></i></div>
+        <h3>Accesorios originales</h3>
+        <p>Accesorios certificados que potencian tu experiencia dentro del ecosistema Apple.</p>
       </div>
     </div>
   </section>
 
-  <!-- FOOTER CON REDES SOCIALES -->
+  <!-- Footer -->
   <footer class="apple-footer">
     <div class="social-links">
-      <a href="https://wa.me/18292890243" target="_blank" data-no-fade><i class="fab fa-whatsapp"></i></a>
-      <a href="https://www.instagram.com/dl_technologies01?igsh=Y3N0ZDFhZ29zOXQ5&utm_source=qr" target="_blank" data-no-fade><i class="fab fa-instagram"></i></a>
+      <a href="https://wa.me/18292890243" target="_blank" aria-label="WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+      </a>
+      <a href="https://www.instagram.com/dl_technologies01" target="_blank" aria-label="Instagram">
+        <i class="fab fa-instagram"></i>
+      </a>
     </div>
     <div class="footer-text">
-      © 2025 DLIFE Technologies — Especialistas Apple<br>
-      Síguenos en Instagram para novedades y promociones.
+      © 2025 DLIFE Technologies<br>
+      Especialistas certificados en Apple<br>
+      <span style="color: #5a5a5f;">Santo Domingo, República Dominicana</span>
     </div>
   </footer>
 
   <script>
-    // ========== MENÚ HAMBURGUESA ==========
-    // Asegurar que el menú funcione en todos los dispositivos
-    document.addEventListener('DOMContentLoaded', function() {
-      const menuToggle = document.querySelector('.menu-toggle');
-      const navLinks = document.querySelector('.nav-links');
+    // Hamburger Menu
+    const menuBtn = document.querySelector('.menu-toggle');
+    const navLinks = document.querySelector('.nav-links');
+    
+    if (menuBtn && navLinks) {
+      menuBtn.addEventListener('click', () => {
+        navLinks.classList.toggle('active');
+        menuBtn.setAttribute('aria-expanded', navLinks.classList.contains('active'));
+      });
       
-      if (menuToggle && navLinks) {
-        // Función para toggle del menú
-        function toggleMenu() {
-          navLinks.classList.toggle('active');
+      document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', () => {
+          navLinks.classList.remove('active');
+          menuBtn.setAttribute('aria-expanded', 'false');
+        });
+      });
+      
+      document.addEventListener('click', (e) => {
+        if (!navLinks.contains(e.target) && !menuBtn.contains(e.target)) {
+          navLinks.classList.remove('active');
+          menuBtn.setAttribute('aria-expanded', 'false');
         }
-        
-        // Evento click para abrir/cerrar
-        menuToggle.addEventListener('click', toggleMenu);
-        
-        // Cerrar menú al hacer clic en un enlace (mejor experiencia en móvil)
-        const links = navLinks.querySelectorAll('a');
-        links.forEach(link => {
-          link.addEventListener('click', function() {
-            navLinks.classList.remove('active');
-          });
-        });
-        
-        // Cerrar menú al hacer clic fuera (opcional, mejora UX)
-        document.addEventListener('click', function(event) {
-          const isClickInsideNav = navLinks.contains(event.target);
-          const isClickOnToggle = menuToggle.contains(event.target);
-          
-          if (!isClickInsideNav && !isClickOnToggle && navLinks.classList.contains('active')) {
-            navLinks.classList.remove('active');
-          }
-        });
-      }
-    });
+      });
+    }
 
-    // ========== SLIDER AUTOMÁTICO ==========
+    // Slider Logic
     const slides = document.querySelectorAll('.slide');
     const dotsContainer = document.getElementById('sliderDots');
-    let currentIndex = 0;
-    let interval;
-
-    if (slides.length > 0 && dotsContainer) {
-      // Crear dots
-      slides.forEach((_, i) => {
+    
+    if (slides.length && dotsContainer) {
+      let current = 0;
+      let interval;
+      const dots = [];
+      
+      // Create dots
+      slides.forEach((_, idx) => {
         const dot = document.createElement('div');
         dot.classList.add('dot');
-        if (i === 0) dot.classList.add('active');
-        dot.addEventListener('click', () => goToSlide(i));
+        if (idx === 0) dot.classList.add('active');
+        dot.addEventListener('click', () => goToSlide(idx));
         dotsContainer.appendChild(dot);
+        dots.push(dot);
       });
-
-      const dots = document.querySelectorAll('.dot');
-
+      
       function goToSlide(index) {
         slides.forEach((slide, i) => {
           slide.classList.toggle('active', i === index);
           if (dots[i]) dots[i].classList.toggle('active', i === index);
         });
-        currentIndex = index;
+        current = index;
         resetInterval();
       }
-
+      
       function nextSlide() {
-        let next = (currentIndex + 1) % slides.length;
-        goToSlide(next);
+        goToSlide((current + 1) % slides.length);
       }
-
+      
       function resetInterval() {
         clearInterval(interval);
-        interval = setInterval(nextSlide, 5000);
+        interval = setInterval(nextSlide, 6000);
       }
-
+      
+      // Pause on hover
+      document.querySelector('.hero-slider').addEventListener('mouseenter', () => clearInterval(interval));
+      document.querySelector('.hero-slider').addEventListener('mouseleave', resetInterval);
+      
       resetInterval();
     }
   </script>
