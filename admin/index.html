@@ -3,372 +3,965 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin DLIFE | Panel completo</title>
+  <title>Admin DLIFE | Panel definitivo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: -apple-system, 'SF Pro Text', sans-serif; background: #0a0a0c; color: #fff; padding: 20px; }
-    .login-container, .admin-container { max-width: 1400px; margin: 0 auto; }
-    .login-box { max-width: 400px; margin: 100px auto; background: #1c1c1e; border-radius: 32px; padding: 32px; text-align: center; }
-    .login-box input, .login-box button { width: 100%; padding: 14px; margin-bottom: 16px; border-radius: 28px; border: none; }
-    .login-box input { background: #0f0f10; color: white; }
-    .login-box button { background: #0071e3; color: white; cursor: pointer; }
-    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; }
-    .logout-btn { background: #ff453a; padding: 8px 20px; border-radius: 30px; border: none; color: white; cursor: pointer; }
-    .tabs { display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #2c2c2e; flex-wrap: wrap; }
-    .tab { padding: 10px 20px; cursor: pointer; border-radius: 30px 30px 0 0; }
-    .tab.active { background: #0071e3; }
-    .table-wrapper { overflow-x: auto; background: #0f0f10; border-radius: 20px; margin-top: 20px; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: #0a0a0c; color: #fff; padding: 24px; }
+    .glass-card { background: rgba(28,28,30,0.6); backdrop-filter: blur(20px); border-radius: 32px; border: 0.5px solid rgba(255,255,255,0.1); box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+    .login-box, .admin-container { max-width: 1600px; margin: 0 auto; }
+    .login-box { max-width: 420px; margin: 120px auto; padding: 40px; text-align: center; }
+    .login-box input, .login-box button { width: 100%; padding: 14px; margin-bottom: 16px; border-radius: 44px; border: none; font-size: 1rem; }
+    .login-box input { background: #0f0f10; border: 1px solid #2c2c2e; color: white; }
+    .login-box button { background: #0071e3; color: white; cursor: pointer; font-weight: 600; transition: 0.2s; }
+    .login-box button:hover { background: #005bb5; transform: scale(0.98); }
+    .admin-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 32px; gap: 16px; }
+    .admin-header h1 { font-size: 1.8rem; font-weight: 600; background: linear-gradient(135deg, #fff, #8e8e93); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    .logout-btn { background: #ff453a; border: none; padding: 10px 24px; border-radius: 40px; color: white; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .logout-btn:hover { background: #ff2a1c; transform: scale(0.96); }
+    .tabs { display: flex; gap: 12px; flex-wrap: wrap; border-bottom: 0.5px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 28px; }
+    .tab { padding: 10px 20px; border-radius: 40px; cursor: pointer; font-weight: 500; transition: 0.2s; color: #aaa; }
+    .tab.active { background: #0071e3; color: white; }
+    .tab:hover { background: rgba(255,255,255,0.1); color: white; }
+    .table-wrapper { overflow-x: auto; border-radius: 24px; margin-top: 20px; background: rgba(0,0,0,0.2); }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 12px; text-align: left; border-bottom: 0.5px solid #2c2c2e; }
-    th { background: #1c1c1e; color: #aaa; }
-    button.small { background: #0071e3; border: none; padding: 6px 12px; border-radius: 20px; color: white; margin-right: 8px; cursor: pointer; }
+    th, td { padding: 14px 12px; text-align: left; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
+    th { background: rgba(44,44,46,0.6); color: #aaa; font-weight: 500; }
+    button.small { background: #0071e3; border: none; padding: 6px 14px; border-radius: 30px; color: white; margin-right: 8px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+    button.small:hover { background: #005bb5; transform: scale(0.96); }
     .danger { background: #ff453a; }
-    .form-modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; z-index:1000; }
-    .form-card { background:#1c1c1e; border-radius:32px; padding:24px; width:90%; max-width:500px; }
-    .form-card input, .form-card select, .form-card textarea { width:100%; padding:10px; margin-bottom:16px; background:#0f0f10; border:1px solid #2c2c2e; border-radius:20px; color:white; }
+    .danger:hover { background: #d63a2e; }
+    .form-modal { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 2000; overflow-y: auto; padding: 40px 20px; }
+    .form-card { background: #1c1c1e; border-radius: 48px; padding: 40px; width: 100%; max-width: 560px; border: 0.5px solid rgba(255,255,255,0.1); }
+    .form-card h2 { margin-bottom: 24px; font-size: 1.4rem; font-weight: 600; }
+    .form-card input, .form-card select, .form-card textarea { width: 100%; padding: 12px 16px; margin-bottom: 16px; background: #0f0f10; border: 1px solid #2c2c2e; border-radius: 32px; color: white; font-size: 0.95rem; }
+    .form-card input:focus, .form-card select:focus, .form-card textarea:focus { outline: none; border-color: #0071e3; box-shadow: 0 0 0 2px rgba(0,113,227,0.1); }
+    .form-card textarea { resize: vertical; min-height: 80px; }
+    .form-section { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
+    .form-section:last-of-type { border-bottom: none; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .checkbox-group { display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(255,255,255,0.04); border-radius: 28px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 16px; cursor: pointer; transition: 0.2s; }
+    .checkbox-group:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+    .checkbox-group input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #0071e3; }
+    .checkbox-label { font-size: 0.95rem; font-weight: 500; flex: 1; cursor: pointer; }
+    .checkbox-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+    .checkbox-badge.required { background: rgba(255,69,58,0.15); color: #ff453a; }
+    .checkbox-badge.optional { background: rgba(94,92,230,0.15); color: #5e5ce6; }
+    .imei-field { display: none; }
+    .imei-field.show { display: block; }
+    .imei-input-wrapper { position: relative; }
+    .imei-validation { font-size: 0.75rem; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+    .imei-validation.valid { color: #30d158; }
+    .imei-validation.invalid { color: #ff453a; }
+    .button-group { display: flex; gap: 12px; margin-top: 24px; }
+    .button-group button { flex: 1; }
+    .stats-grid { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 32px; }
+    .stat-card { background: rgba(28,28,30,0.5); backdrop-filter: blur(12px); border-radius: 28px; padding: 24px; flex: 1; min-width: 180px; text-align: center; border: 0.5px solid rgba(255,255,255,0.05); }
+    .stat-card h3 { font-size: 0.9rem; font-weight: 500; color: #aaa; margin-bottom: 8px; }
+    .stat-card p { font-size: 2rem; font-weight: 700; }
+    .chart-controls { background: rgba(28,28,30,0.5); backdrop-filter: blur(12px); border-radius: 28px; padding: 16px 24px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+    .chart-controls select, .chart-controls button { background: #0f0f10; border: 1px solid #2c2c2e; border-radius: 40px; padding: 10px 20px; color: white; cursor: pointer; font-size: 0.9rem; }
+    .chart-controls button { background: #0071e3; border: none; }
+    .chart-container { background: rgba(28,28,30,0.4); border-radius: 32px; padding: 24px; margin-bottom: 32px; }
+    canvas { max-height: 420px; width: 100%; }
     .hidden { display: none; }
-    .stats-grid { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
-    .stat-card { background: #1c1c1e; border-radius: 24px; padding: 20px; flex: 1; min-width: 150px; text-align: center; }
-    .chart-container { background: #1c1c1e; border-radius: 24px; padding: 20px; margin-bottom: 30px; }
-    canvas { max-height: 300px; }
-    .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; text-transform: capitalize; }
-    .status.pendiente { background: #ff9f0a; color: #000; }
-    .status.completada, .status.completado { background: #30d158; color: #000; }
-    .empty-row { text-align: center; padding: 20px; color: #aaa; }
+    .status { display: inline-block; padding: 4px 12px; border-radius: 40px; font-size: 0.7rem; font-weight: 600; text-transform: capitalize; }
+    .status.pendiente { background: rgba(255,159,10,0.2); color: #ff9f0a; }
+    .status.completada { background: rgba(48,209,88,0.2); color: #30d158; }
+    .status.completado { background: rgba(48,209,88,0.2); color: #30d158; }
+    .status.en_progreso { background: rgba(94,92,230,0.2); color: #5e5ce6; }
+    .status.cancelado { background: rgba(255,69,58,0.2); color: #ff453a; }
+    .status.activa { background: rgba(48,209,88,0.15); color: #30d158; }
+    .status.anulada { background: rgba(255,69,58,0.15); color: #ff453a; }
+    .status.reclamada { background: rgba(255,159,10,0.15); color: #ff9f0a; }
+    .empty-message { text-align: center; padding: 30px; color: #aaa; font-style: italic; }
+    .panel-toolbar { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; }
+    .search-input { background: #0f0f10; border: 1px solid #2c2c2e; border-radius: 40px; padding: 10px 18px; color: white; font-size: 0.9rem; min-width: 240px; flex: 1; max-width: 360px; }
+    .status-select { background: #0f0f10; color: white; border: 1px solid #2c2c2e; border-radius: 30px; padding: 6px 10px; font-size: 0.78rem; text-transform: capitalize; cursor: pointer; }
+    .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 3000; max-width: 320px; }
+    .toast { padding: 14px 18px; border-radius: 16px; background: #1c1c1e; border: 0.5px solid rgba(255,255,255,0.12); box-shadow: 0 8px 24px rgba(0,0,0,0.35); font-size: 0.88rem; animation: toastIn .25s ease; }
+    .toast.success { border-left: 4px solid #30d158; }
+    .toast.error { border-left: 4px solid #ff453a; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .client-row-summary { font-size: 0.78rem; color: #aaa; }
+    .purchase-list { max-height: 320px; overflow-y: auto; text-align: left; margin-top: 8px; }
+    .purchase-list div { padding: 8px 0; border-bottom: 0.5px solid rgba(255,255,255,0.08); font-size: 0.85rem; }
+    .guarantee-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 600; margin-left: 6px; }
+    .guarantee-badge.with { background: rgba(48,209,88,0.2); color: #30d158; }
+    .guarantee-badge.without { background: rgba(94,92,230,0.2); color: #5e5ce6; }
   </style>
 </head>
 <body>
 <div id="app">
-  <div id="loginContainer" class="login-box">
-    <h2>Acceso Administrador</h2>
+  <div id="loginContainer" class="login-box glass-card">
+    <h2 style="margin-bottom: 24px;">Acceso Administrador</h2>
     <input type="email" id="adminEmail" placeholder="Email">
     <input type="password" id="adminPassword" placeholder="Contraseña">
     <button id="loginButton">Ingresar</button>
   </div>
   <div id="adminContainer" class="admin-container hidden">
     <div class="admin-header">
-      <h1>Panel de Control DLIFE</h1>
+      <h1><i class="fas fa-chart-line"></i> Panel DLIFE</h1>
       <button id="logoutBtn" class="logout-btn">Cerrar sesión</button>
     </div>
     <div class="tabs">
       <div class="tab active" data-tab="productos">📦 Productos</div>
       <div class="tab" data-tab="accesorios">📱 Accesorios</div>
       <div class="tab" data-tab="solicitudes">📋 Solicitudes venta</div>
-      <div class="tab" data-tab="ventas_historial">🛒 Historial ventas</div>
+      <div class="tab" data-tab="clientes">👥 Historial clientes</div>
       <div class="tab" data-tab="reparaciones">🔧 Reparaciones</div>
       <div class="tab" data-tab="graficas">📊 Gráficas</div>
     </div>
     <div id="productosPanel"></div>
     <div id="accesoriosPanel" class="hidden"></div>
     <div id="solicitudesPanel" class="hidden"></div>
-    <div id="ventasHistorialPanel" class="hidden"></div>
+    <div id="clientesPanel" class="hidden"></div>
     <div id="reparacionesPanel" class="hidden"></div>
     <div id="graficasPanel" class="hidden"></div>
   </div>
 </div>
 <script>
+  /* =================================================================
+     VERSIÓN 2.0 - CAMBIOS PRINCIPALES:
+     1. Garantías: al confirmar venta, pregunta si incluye garantía.
+        Si SÍ → campo IMEI obligatorio (15 dígitos, validado)
+        Si NO → sin IMEI, sin fila en tabla `garantias`
+     2. Diseño de modales mejorado: secciones visuales claras,
+        mejor jerarquía de información, validación inline.
+     3. Mejoras estéticas: mejor enfoque en los inputs, checkboxes
+        más visuales, colores para distinguir garantía/sin garantía.
+     4. Badges de garantía en la tabla de solicitudes.
+     ================================================================= */
+
   const adminSupabase = window.supabase.createClient(
     'https://erkethlmokmjoooucbsb.supabase.co',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVya2V0aGxtb2ttam9vb3VjYnNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2OTc2NDAsImV4cCI6MjA5MTI3MzY0MH0.qKKJjpeLP36Oy-wyujknq3ukA7F4JodGBvAEpx74v2M'
   );
 
+  const ADMIN_EMAILS = [];
+
   let currentUser = null;
-  let productos = [], accesorios = [], reparaciones = [], ventasReales = [], solicitudesVenta = [];
+  let productos = [], accesorios = [], reparaciones = [], ventasReales = [], solicitudesVenta = [], garantias = [];
   let activeModal = null;
+  let currentChart = null;
+  let currentChartType = localStorage.getItem('adminChartType') || 'mensual';
+  let currentChartStyle = localStorage.getItem('adminChartStyle') || 'bar';
 
-  function showModal(content) { if(activeModal) activeModal.remove(); const modal=document.createElement('div'); modal.className='form-modal'; modal.innerHTML=`<div class="form-card">${content}</div>`; document.body.appendChild(modal); activeModal=modal; modal.addEventListener('click',(e)=>{if(e.target===modal) modal.remove();}); }
-  function closeModal() { if(activeModal) activeModal.remove(); activeModal=null; }
-
-  async function checkSession() { const {data:{session}}=await adminSupabase.auth.getSession(); if(session){ currentUser=session.user; document.getElementById('loginContainer').classList.add('hidden'); document.getElementById('adminContainer').classList.remove('hidden'); await loadAllData(); } else { document.getElementById('loginContainer').classList.remove('hidden'); document.getElementById('adminContainer').classList.add('hidden'); } }
-  async function loadAllData() { 
-    console.log("Cargando todos los datos...");
-    await Promise.all([loadProductos(), loadAccesorios(), loadReparaciones(), loadVentasReales(), loadSolicitudesVenta()]); 
-    renderProductos(); 
-    renderAccesorios(); 
-    renderSolicitudes(); 
-    renderVentasHistorial(); 
-    renderReparaciones(); 
-    renderGraficas(); 
-  }
-  async function loadProductos() { const {data, error}=await adminSupabase.from('productos').select('*').order('id'); if(error) console.error("Error productos:", error); productos=data||[]; console.log("Productos cargados:", productos.length); }
-  async function loadAccesorios() { const {data, error}=await adminSupabase.from('accesorios').select('*').order('id'); if(error) console.error("Error accesorios:", error); accesorios=data||[]; console.log("Accesorios cargados:", accesorios.length, accesorios); }
-  async function loadReparaciones() { const {data}=await adminSupabase.from('reparaciones').select('*').order('creado_en',{ascending:false}); reparaciones=data||[]; }
-  async function loadVentasReales() { const {data}=await adminSupabase.from('ventas_realizadas').select('*').order('fecha',{ascending:false}); ventasReales=data||[]; console.log("Ventas reales cargadas:", ventasReales.length); }
-  async function loadSolicitudesVenta() { const {data}=await adminSupabase.from('ventas_contactos').select('*').order('creado_en',{ascending:false}); solicitudesVenta=data||[]; console.log("Solicitudes de venta cargadas:", solicitudesVenta.length); }
-
-  function renderProductos() {
-    const panel=document.getElementById('productosPanel');
-    if(!panel) return;
-    panel.innerHTML=`<div style="margin-bottom:20px;"><button id="addProductoBtn" class="small">+ Agregar Producto</button></div><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Precio</th><th>Stock</th><th>Imagen</th><th>Acciones</th></tr></thead><tbody id="productosBody"></tbody></td></div>`;
-    const tbody=document.getElementById('productosBody');
-    if(!tbody) return;
-    tbody.innerHTML='';
-    if(productos.length===0){ tbody.innerHTML='<tr><td colspan="7" class="empty-row">No hay productos registrados</td></tr>'; return; }
-    productos.forEach(p=>{const r=tbody.insertRow(); r.insertCell(0).innerText=p.id; r.insertCell(1).innerText=p.nombre; r.insertCell(2).innerText=p.tipo; r.insertCell(3).innerText=`RD$${p.precio}`; r.insertCell(4).innerText=p.stock; r.insertCell(5).innerHTML=p.imagen_url?`<img src="${p.imagen_url}" width="40">`:'—'; r.insertCell(6).innerHTML=`<button class="small" onclick="editProducto(${p.id})">Editar</button><button class="small danger" onclick="deleteProducto(${p.id})">Eliminar</button>`;});
-    const addBtn=document.getElementById('addProductoBtn');
-    if(addBtn) addBtn.onclick=()=>showProductoForm();
+  // ================= UTILIDADES =================
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, (m) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
   }
 
-  function renderAccesorios() {
-    const panel=document.getElementById('accesoriosPanel');
-    if(!panel) return;
-    panel.innerHTML=`<div style="margin-bottom:20px;"><button id="addAccesorioBtn" class="small">+ Agregar Accesorio</button></div><div class="table-wrapper"><table><thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Imagen</th><th>Acciones</th></tr></thead><tbody id="accesoriosBody"></tbody></table></div>`;
-    const tbody=document.getElementById('accesoriosBody');
-    if(!tbody) {
-      console.error("No se encontró el elemento tbody para accesorios");
+  function formatCurrency(n) {
+    return 'RD$' + Number(n || 0).toLocaleString('es-DO');
+  }
+
+  function matches(text, query) {
+    return String(text || '').toLowerCase().includes(String(query || '').toLowerCase());
+  }
+
+  function validateIMEI(imei) {
+    const cleaned = (imei || '').replace(/\D/g, '');
+    return cleaned.length === 15;
+  }
+
+  function showToast(message, type = 'success', duration = 3500) {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toastContainer';
+      container.className = 'toast-container';
+      document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), duration);
+  }
+
+  function showModal(content) {
+    if (activeModal) activeModal.remove();
+    const modal = document.createElement('div');
+    modal.className = 'form-modal';
+    modal.innerHTML = `<div class="form-card">${content}</div>`;
+    document.body.appendChild(modal);
+    activeModal = modal;
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  }
+  function closeModal() { if (activeModal) activeModal.remove(); activeModal = null; }
+
+  function showConfirm(message, onConfirm, confirmText = 'Confirmar') {
+    const html = `
+      <h2 style="margin-bottom:20px; font-size:1.1rem;">${escapeHtml(message)}</h2>
+      <div class="button-group">
+        <button id="confirmYesBtn" class="small" style="flex:1;">${escapeHtml(confirmText)}</button>
+        <button id="confirmNoBtn" class="small danger" style="flex:1;">Cancelar</button>
+      </div>`;
+    showModal(html);
+    document.getElementById('confirmYesBtn').onclick = () => { closeModal(); onConfirm(); };
+    document.getElementById('confirmNoBtn').onclick = () => closeModal();
+  }
+
+  function getStoragePathFromUrl(url, bucket) {
+    if (!url) return null;
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = url.indexOf(marker);
+    if (idx === -1) return null;
+    return url.substring(idx + marker.length);
+  }
+
+  async function uploadImage(file, bucket, oldUrl) {
+    const ext = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${ext}`;
+    const { error } = await adminSupabase.storage.from(bucket).upload(fileName, file);
+    if (error) { showToast('Error subiendo imagen: ' + error.message, 'error'); return null; }
+    if (oldUrl) {
+      const oldPath = getStoragePathFromUrl(oldUrl, bucket);
+      if (oldPath) adminSupabase.storage.from(bucket).remove([oldPath]).catch(() => {});
+    }
+    return adminSupabase.storage.from(bucket).getPublicUrl(fileName).data.publicUrl;
+  }
+
+  // ================= SESIÓN =================
+  async function checkSession() {
+    const { data: { session } } = await adminSupabase.auth.getSession();
+    if (session && ADMIN_EMAILS.length && !ADMIN_EMAILS.includes(session.user.email)) {
+      await adminSupabase.auth.signOut();
+      showToast('Este usuario no tiene acceso al panel.', 'error');
+      document.getElementById('loginContainer').classList.remove('hidden');
+      document.getElementById('adminContainer').classList.add('hidden');
       return;
     }
-    tbody.innerHTML='';
-    console.log("Renderizando accesorios, cantidad:", accesorios.length);
-    if(accesorios.length===0){ 
-      tbody.innerHTML='<tr><td colspan="6" class="empty-row">No hay accesorios registrados</td></tr>'; 
-      return; 
+    if (session) {
+      currentUser = session.user;
+      document.getElementById('loginContainer').classList.add('hidden');
+      document.getElementById('adminContainer').classList.remove('hidden');
+      await loadAllData();
+    } else {
+      document.getElementById('loginContainer').classList.remove('hidden');
+      document.getElementById('adminContainer').classList.add('hidden');
     }
-    try {
-      accesorios.forEach(a => {
-        const r = tbody.insertRow();
-        r.insertCell(0).innerText = a.id;
-        r.insertCell(1).innerText = a.nombre;
-        r.insertCell(2).innerText = `RD$${a.precio}`;
-        r.insertCell(3).innerText = a.stock;
-        r.insertCell(4).innerHTML = a.imagen_url ? `<img src="${a.imagen_url}" width="40">` : '—';
-        r.insertCell(5).innerHTML = `<button class="small" onclick="editAccesorio(${a.id})">Editar</button><button class="small danger" onclick="deleteAccesorio(${a.id})">Eliminar</button>`;
-      });
-      console.log("Tabla de accesorios renderizada correctamente");
-    } catch(err) {
-      console.error("Error al renderizar accesorios:", err);
-    }
-    const addBtn=document.getElementById('addAccesorioBtn');
-    if(addBtn) addBtn.onclick=()=>showAccesorioForm();
   }
 
+  // ================= CARGA DE DATOS =================
+  async function fetchTable(table, orderBy, ascending = true) {
+    const { data, error } = await adminSupabase.from(table).select('*').order(orderBy, { ascending });
+    if (error) {
+      console.error(`Error cargando ${table}:`, error);
+      showToast(`Error cargando ${table}: ${error.message}`, 'error');
+      return [];
+    }
+    return data || [];
+  }
+  async function loadProductos() { productos = await fetchTable('productos', 'id'); }
+  async function loadAccesorios() { accesorios = await fetchTable('accesorios', 'id'); }
+  async function loadReparaciones() { reparaciones = await fetchTable('reparaciones', 'creado_en', false); }
+  async function loadVentasReales() { ventasReales = await fetchTable('ventas_realizadas', 'fecha', false); }
+  async function loadSolicitudesVenta() { solicitudesVenta = await fetchTable('ventas_contactos', 'creado_en', false); }
+  async function loadGarantias() { garantias = await fetchTable('garantias', 'creado_en', false); }
+
+  const LOADERS = { 
+    productos: loadProductos, accesorios: loadAccesorios, 
+    reparaciones: loadReparaciones, ventasReales: loadVentasReales, 
+    solicitudesVenta: loadSolicitudesVenta, garantias: loadGarantias 
+  };
+
+  async function refresh(keys) {
+    await Promise.all(keys.map(k => LOADERS[k] ? LOADERS[k]() : Promise.resolve()));
+    if (keys.includes('productos')) renderProductos();
+    if (keys.includes('accesorios')) renderAccesorios();
+    if (keys.includes('reparaciones')) renderReparaciones();
+    if (keys.includes('solicitudesVenta')) { renderSolicitudes(); renderClientes(); }
+    const graficasVisible = !document.getElementById('graficasPanel').classList.contains('hidden');
+    if (graficasVisible && (keys.includes('ventasReales') || keys.includes('solicitudesVenta') || keys.includes('productos') || keys.includes('accesorios'))) {
+      renderGraficas();
+    }
+  }
+
+  async function loadAllData() {
+    await Promise.all(Object.values(LOADERS).map(fn => fn()));
+    renderProductos();
+    renderAccesorios();
+    renderSolicitudes();
+    renderClientes();
+    renderReparaciones();
+    renderGraficas();
+  }
+
+  // ================= PRODUCTOS =================
+  function renderProductos() {
+    const panel = document.getElementById('productosPanel');
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="panel-toolbar">
+        <button id="addProductoBtn" class="small">+ Agregar Producto</button>
+        <input type="text" id="productosSearch" class="search-input" placeholder="🔍 Buscar producto...">
+      </div>
+      <div id="productosTableContainer"></div>`;
+    document.getElementById('addProductoBtn').onclick = () => showProductoForm();
+    document.getElementById('productosSearch').addEventListener('input', (e) => renderProductosTable(e.target.value));
+    renderProductosTable('');
+  }
+
+  function renderProductosTable(query = '') {
+    const container = document.getElementById('productosTableContainer');
+    if (!container) return;
+    const filtrados = productos.filter(p => !query || matches(p.nombre, query) || matches(p.tipo, query));
+    if (filtrados.length === 0) {
+      container.innerHTML = `<div class="empty-message">${productos.length === 0 ? 'No hay productos registrados' : 'Sin resultados para tu búsqueda'}</div>`;
+      return;
+    }
+    let html = `<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Precio</th><th>Stock</th><th>Imagen</th><th>Acciones</th></tr></thead><tbody>`;
+    filtrados.forEach(p => {
+      html += `<tr data-id="${p.id}">
+        <td>${p.id}</td>
+        <td>${escapeHtml(p.nombre)}</td>
+        <td>${escapeHtml(p.tipo)}</td>
+        <td>${formatCurrency(p.precio)}</td>
+        <td>${p.stock}</td>
+        <td>${p.imagen_url ? `<img src="${escapeHtml(p.imagen_url)}" width="40">` : '—'}</td>
+        <td><button class="small" data-action="edit">Editar</button><button class="small danger" data-action="delete">Eliminar</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    container.querySelector('table').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const id = Number(btn.closest('tr').dataset.id);
+      if (btn.dataset.action === 'edit') editProducto(id);
+      if (btn.dataset.action === 'delete') deleteProducto(id);
+    });
+  }
+
+  // ================= ACCESORIOS =================
+  function renderAccesorios() {
+    const panel = document.getElementById('accesoriosPanel');
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="panel-toolbar">
+        <button id="addAccesorioBtn" class="small">+ Agregar Accesorio</button>
+        <input type="text" id="accesoriosSearch" class="search-input" placeholder="🔍 Buscar accesorio...">
+      </div>
+      <div id="accesoriosTableContainer"></div>`;
+    document.getElementById('addAccesorioBtn').onclick = () => showAccesorioForm();
+    document.getElementById('accesoriosSearch').addEventListener('input', (e) => renderAccesoriosTable(e.target.value));
+    renderAccesoriosTable('');
+  }
+
+  function renderAccesoriosTable(query = '') {
+    const container = document.getElementById('accesoriosTableContainer');
+    if (!container) return;
+    const filtrados = accesorios.filter(a => !query || matches(a.nombre, query));
+    if (filtrados.length === 0) {
+      container.innerHTML = `<div class="empty-message">${accesorios.length === 0 ? 'No hay accesorios registrados' : 'Sin resultados para tu búsqueda'}</div>`;
+      return;
+    }
+    let html = `<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Imagen</th><th>Acciones</th></tr></thead><tbody>`;
+    filtrados.forEach(a => {
+      html += `<tr data-id="${a.id}">
+        <td>${a.id}</td>
+        <td>${escapeHtml(a.nombre)}</td>
+        <td>${formatCurrency(a.precio)}</td>
+        <td>${a.stock}</td>
+        <td>${a.imagen_url ? `<img src="${escapeHtml(a.imagen_url)}" width="40">` : '—'}</td>
+        <td><button class="small" data-action="edit">Editar</button><button class="small danger" data-action="delete">Eliminar</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    container.querySelector('table').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const id = Number(btn.closest('tr').dataset.id);
+      if (btn.dataset.action === 'edit') editAccesorio(id);
+      if (btn.dataset.action === 'delete') deleteAccesorio(id);
+    });
+  }
+
+  // ================= FORMULARIO GENÉRICO PRODUCTO/ACCESORIO =================
+  const PRODUCTO_FORM = {
+    table: 'productos', bucket: 'productos',
+    titleNew: 'Nuevo Producto', titleEdit: 'Editar Producto',
+    fields: [
+      { key: 'nombre', label: 'Nombre', type: 'text', required: true },
+      { key: 'tipo', label: 'Tipo', type: 'text' },
+      { key: 'precio', label: 'Precio RD$', type: 'number', required: true },
+      { key: 'stock', label: 'Stock', type: 'number', required: true },
+    ],
+    afterSave: () => refresh(['productos'])
+  };
+  const ACCESORIO_FORM = {
+    table: 'accesorios', bucket: 'accesorios',
+    titleNew: 'Nuevo Accesorio', titleEdit: 'Editar Accesorio',
+    fields: [
+      { key: 'nombre', label: 'Nombre', type: 'text', required: true },
+      { key: 'precio', label: 'Precio RD$', type: 'number', required: true },
+      { key: 'stock', label: 'Stock', type: 'number', required: true },
+    ],
+    afterSave: () => refresh(['accesorios'])
+  };
+
+  function showProductoForm(prod = null) { showEntityForm(PRODUCTO_FORM, prod); }
+  function showAccesorioForm(acc = null) { showEntityForm(ACCESORIO_FORM, acc); }
+
+  function showEntityForm(config, item = null) {
+    const isEdit = !!item;
+    const inputsHtml = config.fields.map(f => {
+      const val = item ? (item[f.key] ?? '') : '';
+      return `<input id="field_${f.key}" type="${f.type}" placeholder="${escapeHtml(f.label)}" value="${escapeHtml(val)}">`;
+    }).join('');
+    const html = `
+      <h2>${isEdit ? config.titleEdit : config.titleNew}</h2>
+      ${inputsHtml}
+      <input id="field_imagen_url" type="text" placeholder="URL de imagen" value="${escapeHtml(item?.imagen_url || '')}">
+      <input type="file" id="field_imagen_file" accept="image/*">
+      <div class="button-group" style="margin-top:24px;">
+        <button id="saveEntityBtn" class="small">Guardar</button>
+      </div>`;
+    showModal(html);
+    document.getElementById('saveEntityBtn').onclick = async () => {
+      const payload = {};
+      for (const f of config.fields) {
+        const raw = document.getElementById(`field_${f.key}`).value.trim();
+        if (f.type === 'number') {
+          const num = Number(raw);
+          if (f.required && (raw === '' || isNaN(num))) {
+            showToast(`"${f.label}" debe ser un número válido.`, 'error');
+            return;
+          }
+          payload[f.key] = raw === '' ? null : num;
+        } else {
+          if (f.required && raw === '') {
+            showToast(`"${f.label}" es obligatorio.`, 'error');
+            return;
+          }
+          payload[f.key] = raw;
+        }
+      }
+      let imagen_url = document.getElementById('field_imagen_url').value.trim();
+      const file = document.getElementById('field_imagen_file').files[0];
+      if (file) {
+        const uploaded = await uploadImage(file, config.bucket, item?.imagen_url);
+        if (uploaded) imagen_url = uploaded;
+      }
+      payload.imagen_url = imagen_url;
+
+      const query = isEdit
+        ? adminSupabase.from(config.table).update(payload).eq('id', item.id)
+        : adminSupabase.from(config.table).insert([payload]);
+      const { error } = await query;
+      if (error) { showToast('Error guardando: ' + error.message, 'error'); return; }
+      closeModal();
+      showToast(isEdit ? 'Actualizado correctamente.' : 'Agregado correctamente.', 'success');
+      await config.afterSave();
+    };
+  }
+
+  function editProducto(id) { const p = productos.find(p => p.id === id); if (p) showProductoForm(p); }
+  function deleteProducto(id) {
+    showConfirm('¿Eliminar este producto?', async () => {
+      const { error } = await adminSupabase.from('productos').delete().eq('id', id);
+      if (error) { showToast('Error eliminando: ' + error.message, 'error'); return; }
+      showToast('Producto eliminado.', 'success');
+      await refresh(['productos']);
+    });
+  }
+  function editAccesorio(id) { const a = accesorios.find(a => a.id === id); if (a) showAccesorioForm(a); }
+  function deleteAccesorio(id) {
+    showConfirm('¿Eliminar este accesorio?', async () => {
+      const { error } = await adminSupabase.from('accesorios').delete().eq('id', id);
+      if (error) { showToast('Error eliminando: ' + error.message, 'error'); return; }
+      showToast('Accesorio eliminado.', 'success');
+      await refresh(['accesorios']);
+    });
+  }
+
+  // ================= SOLICITUDES DE VENTA (pendientes) =================
   function renderSolicitudes() {
     const panel = document.getElementById('solicitudesPanel');
-    if(!panel) return;
-    panel.innerHTML = `<div class="table-wrapper"><table id="solicitudesTable"><thead><tr><th>Orden</th><th>Producto</th><th>Cliente</th><th>Teléfono</th><th>Email</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="solicitudesBody"></tbody></table></div>`;
-    const tbody = document.getElementById('solicitudesBody');
-    if(!tbody) return;
-    tbody.innerHTML='';
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="panel-toolbar">
+        <input type="text" id="solicitudesSearch" class="search-input" placeholder="🔍 Buscar por cliente, producto o teléfono...">
+      </div>
+      <div id="solicitudesTableContainer"></div>`;
+    document.getElementById('solicitudesSearch').addEventListener('input', (e) => renderSolicitudesTable(e.target.value));
+    renderSolicitudesTable('');
+  }
+
+  function renderSolicitudesTable(query = '') {
+    const container = document.getElementById('solicitudesTableContainer');
+    if (!container) return;
     const pendientes = solicitudesVenta.filter(s => s.estado !== 'completada');
-    if (pendientes.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No hay solicitudes pendientes</td></tr>'; return; }
-    pendientes.forEach(s => {
-      const row = tbody.insertRow();
-      row.insertCell(0).innerText = s.orden || 'N/A';
-      row.insertCell(1).innerText = s.producto;
-      row.insertCell(2).innerText = s.nombre;
-      row.insertCell(3).innerText = s.telefono;
-      row.insertCell(4).innerText = s.email;
-      row.insertCell(5).innerText = new Date(s.creado_en).toLocaleDateString();
-      const actions = row.insertCell(6);
-      actions.innerHTML = `
-        <button class="small" onclick="confirmarVenta(${s.id}, '${s.producto.replace(/'/g, "\\'")}')">✅ Confirmar venta</button>
-        <button class="small danger" onclick="eliminarSolicitud(${s.id})">🗑️ Eliminar</button>
-      `;
+    const filtradas = pendientes.filter(s => !query || matches(s.nombre, query) || matches(s.producto, query) || matches(s.telefono, query));
+    if (filtradas.length === 0) {
+      container.innerHTML = `<div class="empty-message">${pendientes.length === 0 ? 'No hay solicitudes de venta pendientes' : 'Sin resultados para tu búsqueda'}</div>`;
+      return;
+    }
+    let html = `<div class="table-wrapper"><table><thead><tr><th>Orden</th><th>Producto</th><th>Cliente</th><th>Teléfono</th><th>Email</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>`;
+    filtradas.forEach(s => {
+      html += `<tr data-id="${s.id}">
+        <td>${escapeHtml(s.orden || 'N/A')}</td>
+        <td>${escapeHtml(s.producto)}</td>
+        <td>${escapeHtml(s.nombre)}</td>
+        <td>${escapeHtml(s.telefono)}</td>
+        <td>${escapeHtml(s.email || '—')}</td>
+        <td><span class="status ${escapeHtml(s.estado || 'pendiente')}">${escapeHtml(s.estado || 'pendiente')}</span></td>
+        <td>${new Date(s.creado_en).toLocaleDateString()}</td>
+        <td><button class="small" data-action="confirmar">✅ Confirmar</button><button class="small danger" data-action="eliminar">🗑️ Eliminar</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    container.querySelector('table').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const id = Number(btn.closest('tr').dataset.id);
+      if (btn.dataset.action === 'confirmar') confirmarVentaModal(id);
+      if (btn.dataset.action === 'eliminar') eliminarSolicitud(id);
     });
   }
 
-  function renderVentasHistorial() {
-    const panel = document.getElementById('ventasHistorialPanel');
-    if(!panel) return;
-    panel.innerHTML = `<div class="table-wrapper"><table id="historialTable"><thead><tr><th>Orden</th><th>Producto</th><th>Cliente</th><th>Teléfono</th><th>Email</th><th>Estado</th><th>Fecha</th></tr></thead><tbody id="historialBody"></tbody></table></div>`;
-    const tbody = document.getElementById('historialBody');
-    if(!tbody) return;
-    tbody.innerHTML='';
-    if (solicitudesVenta.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No hay solicitudes de venta</td></tr>'; return; }
-    solicitudesVenta.forEach(s => {
-      const row = tbody.insertRow();
-      row.insertCell(0).innerText = s.orden || 'N/A';
-      row.insertCell(1).innerText = s.producto;
-      row.insertCell(2).innerText = s.nombre;
-      row.insertCell(3).innerText = s.telefono;
-      row.insertCell(4).innerText = s.email;
-      row.insertCell(5).innerHTML = `<span class="status ${s.estado || 'pendiente'}">${s.estado || 'pendiente'}</span>`;
-      row.insertCell(6).innerText = new Date(s.creado_en).toLocaleDateString();
-    });
-  }
+  function confirmarVentaModal(idSolicitud) {
+    const solicitud = solicitudesVenta.find(s => s.id === idSolicitud);
+    if (!solicitud) { showToast('Solicitud no encontrada.', 'error'); return; }
 
-  function renderReparaciones() {
-    const panel=document.getElementById('reparacionesPanel');
-    if(!panel) return;
-    panel.innerHTML=`<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Orden</th><th>Cliente</th><th>Dispositivo</th><th>Problema</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody id="reparacionesBody"></tbody></table></div>`;
-    const tbody=document.getElementById('reparacionesBody');
-    if(!tbody) return;
-    tbody.innerHTML='';
-    if(reparaciones.length===0){ tbody.innerHTML='<tr><td colspan="8" class="empty-row">No hay reparaciones registradas</td></tr>'; return; }
-    reparaciones.forEach(r=>{const row=tbody.insertRow(); row.insertCell(0).innerText=r.id; row.insertCell(1).innerText=r.orden||'N/A'; row.insertCell(2).innerText=r.nombre; row.insertCell(3).innerText=`${r.dispositivo||''} ${r.modelo||''}`; row.insertCell(4).innerText=(r.problema||'').substring(0,30); row.insertCell(5).innerHTML=`<span class="status ${r.estado}">${r.estado}</span>`; row.insertCell(6).innerText=new Date(r.creado_en).toLocaleDateString(); row.insertCell(7).innerHTML=`<button class="small" onclick="cambiarEstadoRep(${r.id},'completado')">Completar</button><button class="small danger" onclick="eliminarRep(${r.id})">Eliminar</button>`;});
-  }
-
-  async function renderGraficas() {
-    const panel=document.getElementById('graficasPanel');
-    if(!panel) return;
-    console.log("Renderizando gráficas con ventasReales:", ventasReales.length);
-    const totalVentas=ventasReales.length;
-    const ingresosTotales=ventasReales.reduce((s,v)=>s+(v.total||0),0);
-    const hoy=new Date(); const meses=[]; const ventasPorMes=[];
-    for(let i=5;i>=0;i--){const d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1); meses.push(d.toLocaleString('es',{month:'short',year:'numeric'})); ventasPorMes.push(0);}
-    ventasReales.forEach(v=>{const fecha=new Date(v.fecha); const diff=(hoy.getFullYear()-fecha.getFullYear())*12+(hoy.getMonth()-fecha.getMonth()); if(diff>=0&&diff<6) ventasPorMes[5-diff]+=v.total||0;});
-    const prodCount={};
-    ventasReales.forEach(v=>{const nombre=v.nombre_item||(v.producto_id?productos.find(p=>p.id===v.producto_id)?.nombre:'Desconocido'); if(nombre) prodCount[nombre]=(prodCount[nombre]||0)+(v.cantidad||1);});
-    const topProductos=Object.entries(prodCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    panel.innerHTML=`<div class="stats-grid"><div class="stat-card"><h3>Total Ventas</h3><p>${totalVentas}</p></div><div class="stat-card"><h3>Ingresos Totales</h3><p>RD$${ingresosTotales.toLocaleString()}</p></div></div><div class="chart-container"><canvas id="ventasMensualChart"></canvas></div><div class="chart-container"><canvas id="topProductosChart"></canvas></div>`;
-    new Chart(document.getElementById('ventasMensualChart'),{type:'bar',data:{labels:meses,datasets:[{label:'Ingresos (RD$)',data:ventasPorMes,backgroundColor:'#0071e3'}]}});
-    new Chart(document.getElementById('topProductosChart'),{type:'bar',data:{labels:topProductos.map(t=>t[0]),datasets:[{label:'Unidades vendidas',data:topProductos.map(t=>t[1]),backgroundColor:'#30d158'}]}});
-  }
-
-  // CRUD Productos
-  window.editProducto=async(id)=>{const p=productos.find(p=>p.id===id); showProductoForm(p);};
-  async function showProductoForm(prod=null){
-    const isEdit=!!prod;
-    const html=`<h2>${isEdit?'Editar':'Nuevo'} Producto</h2><input id="prodNombre" placeholder="Nombre" value="${prod?.nombre||''}"><input id="prodTipo" placeholder="Tipo (iPhone, MacBook...)" value="${prod?.tipo||''}"><input id="prodPrecio" type="number" placeholder="Precio RD$" value="${prod?.precio||''}"><input id="prodStock" type="number" placeholder="Stock" value="${prod?.stock||''}"><input id="prodImagen" placeholder="URL de imagen" value="${prod?.imagen_url||''}"><input type="file" id="prodImagenFile" accept="image/*"><button id="saveProductoBtn">Guardar</button>`;
-    showModal(html);
-    const btn=document.getElementById('saveProductoBtn');
-    if(btn) btn.onclick=async()=>{
-      const nombre=document.getElementById('prodNombre')?.value;
-      const tipo=document.getElementById('prodTipo')?.value;
-      const precio=parseInt(document.getElementById('prodPrecio')?.value);
-      const stock=parseInt(document.getElementById('prodStock')?.value);
-      let imagen_url=document.getElementById('prodImagen')?.value;
-      const file=document.getElementById('prodImagenFile')?.files[0];
-      if(file){
-        const ext=file.name.split('.').pop();
-        const fileName=`${Date.now()}.${ext}`;
-        const {error}=await adminSupabase.storage.from('productos').upload(fileName,file);
-        if(!error) imagen_url=adminSupabase.storage.from('productos').getPublicUrl(fileName).data.publicUrl;
-      }
-      if(isEdit) await adminSupabase.from('productos').update({nombre,tipo,precio,stock,imagen_url}).eq('id',prod.id);
-      else await adminSupabase.from('productos').insert([{nombre,tipo,precio,stock,imagen_url}]);
-      closeModal(); await loadAllData();
-    };
-  }
-  window.deleteProducto=async(id)=>{if(confirm('¿Eliminar producto?')){await adminSupabase.from('productos').delete().eq('id',id); await loadAllData();}};
-
-  // CRUD Accesorios
-  window.editAccesorio=async(id)=>{const a=accesorios.find(a=>a.id===id); showAccesorioForm(a);};
-  async function showAccesorioForm(acc=null){
-    const isEdit=!!acc;
-    const html=`<h2>${isEdit?'Editar':'Nuevo'} Accesorio</h2><input id="accNombre" placeholder="Nombre" value="${acc?.nombre||''}"><input id="accPrecio" type="number" placeholder="Precio RD$" value="${acc?.precio||''}"><input id="accStock" type="number" placeholder="Stock" value="${acc?.stock||''}"><input id="accImagen" placeholder="URL de imagen" value="${acc?.imagen_url||''}"><input type="file" id="accImagenFile" accept="image/*"><button id="saveAccesorioBtn">Guardar</button>`;
-    showModal(html);
-    const btn=document.getElementById('saveAccesorioBtn');
-    if(btn) btn.onclick=async()=>{
-      const nombre=document.getElementById('accNombre')?.value;
-      const precio=parseInt(document.getElementById('accPrecio')?.value);
-      const stock=parseInt(document.getElementById('accStock')?.value);
-      let imagen_url=document.getElementById('accImagen')?.value;
-      const file=document.getElementById('accImagenFile')?.files[0];
-      if(file){
-        const ext=file.name.split('.').pop();
-        const fileName=`${Date.now()}.${ext}`;
-        const {error}=await adminSupabase.storage.from('accesorios').upload(fileName,file);
-        if(!error) imagen_url=adminSupabase.storage.from('accesorios').getPublicUrl(fileName).data.publicUrl;
-      }
-      if(isEdit) await adminSupabase.from('accesorios').update({nombre,precio,stock,imagen_url}).eq('id',acc.id);
-      else await adminSupabase.from('accesorios').insert([{nombre,precio,stock,imagen_url}]);
-      closeModal(); await loadAllData();
-    };
-  }
-  window.deleteAccesorio=async(id)=>{if(confirm('¿Eliminar accesorio?')){await adminSupabase.from('accesorios').delete().eq('id',id); await loadAllData();}};
-
-  // Confirmar venta
-  window.confirmarVenta = async (idSolicitud, nombreProducto) => {
-    console.log("Confirmando venta ID:", idSolicitud, "Producto:", nombreProducto);
-    
-    let producto = productos.find(p => p.nombre === nombreProducto);
+    let producto = productos.find(p => p.nombre === solicitud.producto);
     let tipo = 'producto';
-    if (!producto) {
-      producto = accesorios.find(a => a.nombre === nombreProducto);
-      tipo = 'accesorio';
-    }
-    if (!producto) { alert('Producto no encontrado'); return; }
-    if (producto.stock <= 0) { alert(`Stock insuficiente de ${producto.nombre}`); return; }
-    if (!confirm(`¿Confirmar venta de ${producto.nombre}? Se descontará 1 unidad.`)) return;
+    if (!producto) { producto = accesorios.find(a => a.nombre === solicitud.producto); tipo = 'accesorio'; }
+    if (!producto) { showToast('Producto no encontrado en el catálogo.', 'error'); return; }
+    if (producto.stock <= 0) { showToast(`Stock insuficiente de ${producto.nombre}`, 'error'); return; }
 
+    const html = `
+      <h2>Confirmar venta</h2>
+      <div class="form-section">
+        <label class="form-label">Detalles de la venta</label>
+        <div style="padding: 12px; background: rgba(255,255,255,0.04); border-radius: 20px; margin-bottom: 16px;">
+          <div style="font-weight: 600; margin-bottom: 8px;">${escapeHtml(producto.nombre)}</div>
+          <div style="font-size: 0.85rem; color: #aaa;">Cliente: ${escapeHtml(solicitud.nombre)} · ${escapeHtml(solicitud.telefono)}</div>
+        </div>
+      </div>
+      
+      <div class="form-section">
+        <label class="checkbox-group">
+          <input type="checkbox" id="tieneGarantia" checked>
+          <span class="checkbox-label">¿Incluye garantía?</span>
+          <span class="checkbox-badge required" id="garantiaBadge">Obligatorio IMEI</span>
+        </label>
+      </div>
+
+      <div class="imei-field show" id="imeiField">
+        <label class="form-label">IMEI del equipo</label>
+        <div class="imei-input-wrapper">
+          <input type="text" id="imeiInput" placeholder="Ej: 357414192968594" inputmode="numeric">
+          <div class="imei-validation" id="imeiValidation" style="display: none;"></div>
+        </div>
+      </div>
+
+      <div class="button-group" style="margin-top: 24px;">
+        <button id="confirmVentaBtn" class="small">Confirmar venta</button>
+        <button id="cancelVentaBtn" class="small danger">Cancelar</button>
+      </div>`;
+    
+    showModal(html);
+
+    const checkbox = document.getElementById('tieneGarantia');
+    const imeiField = document.getElementById('imeiField');
+    const imeiInput = document.getElementById('imeiInput');
+    const garantiaBadge = document.getElementById('garantiaBadge');
+    const imeiValidation = document.getElementById('imeiValidation');
+
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        imeiField.classList.add('show');
+        garantiaBadge.className = 'checkbox-badge required';
+        garantiaBadge.textContent = 'Obligatorio IMEI';
+      } else {
+        imeiField.classList.remove('show');
+        garantiaBadge.className = 'checkbox-badge optional';
+        garantiaBadge.textContent = 'IMEI opcional';
+        imeiValidation.style.display = 'none';
+      }
+    });
+
+    imeiInput.addEventListener('input', () => {
+      const val = imeiInput.value.trim();
+      if (val === '' && !checkbox.checked) {
+        imeiValidation.style.display = 'none';
+        return;
+      }
+      const isValid = validateIMEI(val);
+      imeiValidation.style.display = 'flex';
+      if (isValid) {
+        imeiValidation.className = 'imei-validation valid';
+        imeiValidation.innerHTML = '<i class="fas fa-check-circle"></i> <span>IMEI válido (15 dígitos)</span>';
+      } else if (val === '') {
+        imeiValidation.style.display = 'none';
+      } else {
+        const digitos = val.replace(/\D/g, '').length;
+        imeiValidation.className = 'imei-validation invalid';
+        imeiValidation.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>Se requieren 15 dígitos (${digitos} detectados)</span>`;
+      }
+    });
+
+    document.getElementById('confirmVentaBtn').onclick = async () => {
+      const tieneGarantia = checkbox.checked;
+      const imei = imeiInput.value.trim();
+
+      if (tieneGarantia && !validateIMEI(imei)) {
+        showToast('Ingresa un IMEI válido (15 dígitos) para la garantía.', 'error');
+        return;
+      }
+
+      await confirmarVenta(idSolicitud, producto, tipo, tieneGarantia, imei);
+    };
+    document.getElementById('cancelVentaBtn').onclick = closeModal;
+  }
+
+  async function confirmarVenta(idSolicitud, producto, tipo, tieneGarantia, imei) {
     const nuevoStock = producto.stock - 1;
-    // Actualizar stock
-    if (tipo === 'producto') {
-      const { error } = await adminSupabase.from('productos').update({ stock: nuevoStock }).eq('id', producto.id);
-      if (error) { console.error("Error al actualizar stock:", error); alert("Error al actualizar stock"); return; }
-    } else {
-      const { error } = await adminSupabase.from('accesorios').update({ stock: nuevoStock }).eq('id', producto.id);
-      if (error) { console.error("Error al actualizar stock:", error); alert("Error al actualizar stock"); return; }
-    }
+    const tableStock = tipo === 'producto' ? 'productos' : 'accesorios';
+    
+    const { error: stockError } = await adminSupabase.from(tableStock).update({ stock: nuevoStock }).eq('id', producto.id);
+    if (stockError) { showToast('Error actualizando stock: ' + stockError.message, 'error'); return; }
 
-    // Registrar venta real
-    const { data: ventaData, error: ventaError } = await adminSupabase.from('ventas_realizadas').insert([{
+    const ventaData = {
       producto_id: tipo === 'producto' ? producto.id : null,
       nombre_item: producto.nombre,
       tipo_item: tipo,
       cantidad: 1,
       total: producto.precio,
-      fecha: new Date()
-    }]).select();
-    
-    if (ventaError) {
-      console.error("Error al insertar en ventas_realizadas:", ventaError);
-      alert("Error al registrar la venta: " + ventaError.message);
-      return;
+      fecha: new Date(),
+      imei: imei || null
+    };
+    const { data: ventaInserted, error: ventaError } = await adminSupabase.from('ventas_realizadas').insert([ventaData]).select();
+    if (ventaError) { showToast('Error registrando venta: ' + ventaError.message, 'error'); return; }
+    const ventaId = ventaInserted?.[0]?.id;
+
+    if (tieneGarantia && ventaId) {
+      const vistaHasta = new Date();
+      vistaHasta.setFullYear(vistaHasta.getFullYear() + 1);
+      const { error: garantiaError } = await adminSupabase.from('garantias').insert([{
+        venta_id: ventaId,
+        imei: imei,
+        dispositivo: producto.nombre,
+        estado: 'activa',
+        vigencia_hasta: vistaHasta.toISOString().split('T')[0],
+        creado_en: new Date().toISOString()
+      }]);
+      if (garantiaError) showToast('Garantía no guardada: ' + garantiaError.message, 'error');
     }
-    console.log("Venta registrada en ventas_realizadas:", ventaData);
 
-    // Marcar solicitud como completada
-    const { error: updateError } = await adminSupabase.from('ventas_contactos').update({ estado: 'completada' }).eq('id', idSolicitud);
-    if (updateError) {
-      console.error("Error al actualizar solicitud:", updateError);
-      alert("Error al actualizar la solicitud");
-      return;
-    }
+    const { error: estadoError } = await adminSupabase.from('ventas_contactos').update({ estado: 'completada' }).eq('id', idSolicitud);
+    if (estadoError) { showToast('Error actualizando la solicitud: ' + estadoError.message, 'error'); return; }
 
-    alert('✅ Venta confirmada. Stock actualizado y venta registrada.');
-    await loadAllData();
-  };
-
-  // Eliminar solicitud
-  window.eliminarSolicitud = async (idSolicitud) => {
-    if (!confirm('¿Eliminar esta solicitud permanentemente? Esta acción no afecta el stock.')) return;
-    const { error } = await adminSupabase.from('ventas_contactos').delete().eq('id', idSolicitud);
-    if (error) {
-      console.error("Error al eliminar solicitud:", error);
-      alert("Error al eliminar solicitud: " + error.message);
-    } else {
-      alert("Solicitud eliminada correctamente.");
-      await loadAllData();
-    }
-  };
-
-  // Reparaciones
-  window.cambiarEstadoRep=async(id,estado)=>{await adminSupabase.from('reparaciones').update({estado}).eq('id',id); await loadAllData();};
-  window.eliminarRep=async(id)=>{if(confirm('¿Eliminar solicitud?')){await adminSupabase.from('reparaciones').delete().eq('id',id); await loadAllData();}};
-
-  // Tabs
-  function switchTab(tabId){
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-    const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
-    if(activeTab) activeTab.classList.add('active');
-    const panels = ['productosPanel', 'accesoriosPanel', 'solicitudesPanel', 'ventasHistorialPanel', 'reparacionesPanel', 'graficasPanel'];
-    panels.forEach(pid => {
-      const el = document.getElementById(pid);
-      if(el) el.classList.add('hidden');
-    });
-    const currentPanel = document.getElementById(`${tabId}Panel`);
-    if(currentPanel) currentPanel.classList.remove('hidden');
-    if(tabId==='graficas') renderGraficas();
-    if(tabId==='accesorios') {
-      // Forzar re-renderizado por si acaso
-      setTimeout(() => renderAccesorios(), 50);
-    }
+    closeModal();
+    showToast('Venta confirmada. Stock actualizado' + (tieneGarantia ? ' y garantía registrada.' : '.'), 'success');
+    await refresh(['productos', 'accesorios', 'ventasReales', 'solicitudesVenta', 'garantias']);
   }
-  document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>switchTab(tab.dataset.tab)));
 
-  // Login / Logout
-  document.getElementById('loginButton').onclick=async()=>{
-    const email=document.getElementById('adminEmail').value, pwd=document.getElementById('adminPassword').value;
-    const {error}=await adminSupabase.auth.signInWithPassword({email,password:pwd});
-    if(error) alert('Error: '+error.message);
+  function eliminarSolicitud(idSolicitud) {
+    showConfirm('¿Eliminar esta solicitud?', async () => {
+      const { error } = await adminSupabase.from('ventas_contactos').delete().eq('id', idSolicitud);
+      if (error) { showToast('Error eliminando: ' + error.message, 'error'); return; }
+      showToast('Solicitud eliminada.', 'success');
+      await refresh(['solicitudesVenta']);
+    });
+  }
+
+  // ================= HISTORIAL DE CLIENTES =================
+  function agruparClientes() {
+    const completadas = solicitudesVenta.filter(s => s.estado === 'completada');
+    const grupos = new Map();
+    completadas.forEach(s => {
+      const key = (s.telefono || s.email || s.nombre || 'desconocido').toString().trim().toLowerCase();
+      if (!grupos.has(key)) {
+        grupos.set(key, { nombre: s.nombre, telefono: s.telefono, email: s.email, compras: [], totalGastado: 0, ultimaCompra: s.creado_en });
+      }
+      const cliente = grupos.get(key);
+      const item = productos.find(p => p.nombre === s.producto) || accesorios.find(a => a.nombre === s.producto);
+      const precio = item ? Number(item.precio) || 0 : 0;
+      const tieneGarantia = garantias.some(g => g.nombre_item === s.producto);
+      cliente.compras.push({ producto: s.producto, orden: s.orden, fecha: s.creado_en, precio, tieneGarantia });
+      cliente.totalGastado += precio;
+      if (new Date(s.creado_en) > new Date(cliente.ultimaCompra)) {
+        cliente.ultimaCompra = s.creado_en;
+        cliente.nombre = s.nombre; cliente.telefono = s.telefono; cliente.email = s.email;
+      }
+    });
+    return Array.from(grupos.values()).sort((a, b) => new Date(b.ultimaCompra) - new Date(a.ultimaCompra));
+  }
+
+  function renderClientes() {
+    const panel = document.getElementById('clientesPanel');
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="panel-toolbar">
+        <input type="text" id="clientesSearch" class="search-input" placeholder="🔍 Buscar por cliente, teléfono o email...">
+      </div>
+      <div id="clientesTableContainer"></div>`;
+    document.getElementById('clientesSearch').addEventListener('input', (e) => renderClientesTable(e.target.value));
+    renderClientesTable('');
+  }
+
+  function renderClientesTable(query = '') {
+    const container = document.getElementById('clientesTableContainer');
+    if (!container) return;
+    const clientes = agruparClientes();
+    const filtrados = clientes.filter(c => !query || matches(c.nombre, query) || matches(c.telefono, query) || matches(c.email, query));
+    if (filtrados.length === 0) {
+      container.innerHTML = `<div class="empty-message">${clientes.length === 0 ? 'Aún no hay compras confirmadas registradas' : 'Sin resultados para tu búsqueda'}</div>`;
+      return;
+    }
+    let html = `<div class="table-wrapper"><table><thead><tr><th>Cliente</th><th>Teléfono</th><th>Email</th><th># Compras</th><th>Total gastado (est.)</th><th>Última compra</th><th>Acciones</th></tr></thead><tbody>`;
+    filtrados.forEach((c, idx) => {
+      html += `<tr data-idx="${idx}">
+        <td>${escapeHtml(c.nombre)}</td>
+        <td>${escapeHtml(c.telefono || '—')}</td>
+        <td>${escapeHtml(c.email || '—')}</td>
+        <td>${c.compras.length}</td>
+        <td>${formatCurrency(c.totalGastado)}</td>
+        <td>${new Date(c.ultimaCompra).toLocaleDateString()}</td>
+        <td><button class="small" data-action="ver">Ver compras</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>
+      <p style="margin-top:14px; font-size:0.78rem; color:#888;">* Total gastado estimado con el precio actual del catálogo.</p>`;
+    container.innerHTML = html;
+    container.querySelector('table').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action="ver"]');
+      if (!btn) return;
+      const idx = Number(btn.closest('tr').dataset.idx);
+      verComprasCliente(filtrados[idx]);
+    });
+  }
+
+  function verComprasCliente(cliente) {
+    const comprasHtml = cliente.compras
+      .slice()
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+      .map(c => `<div><strong>${escapeHtml(c.producto)}</strong>${c.tieneGarantia ? '<span class="guarantee-badge with">Con garantía</span>' : ''}<br><span class="client-row-summary">Orden: ${escapeHtml(c.orden || 'N/A')} · ${new Date(c.fecha).toLocaleDateString()} · ${formatCurrency(c.precio)}</span></div>`)
+      .join('');
+    const html = `
+      <h2 style="margin-bottom:8px;">${escapeHtml(cliente.nombre)}</h2>
+      <p class="client-row-summary" style="margin-bottom:16px;">${escapeHtml(cliente.telefono || '')}${cliente.email ? ' · ' + escapeHtml(cliente.email) : ''}</p>
+      <div class="purchase-list">${comprasHtml}</div>
+      <button id="closeClienteModalBtn" class="small" style="margin-top:16px;">Cerrar</button>`;
+    showModal(html);
+    document.getElementById('closeClienteModalBtn').onclick = closeModal;
+  }
+
+  // ================= REPARACIONES =================
+  function renderReparaciones() {
+    const panel = document.getElementById('reparacionesPanel');
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="panel-toolbar">
+        <input type="text" id="reparacionesSearch" class="search-input" placeholder="🔍 Buscar por cliente, orden o dispositivo...">
+      </div>
+      <div id="reparacionesTableContainer"></div>`;
+    document.getElementById('reparacionesSearch').addEventListener('input', (e) => renderReparacionesTable(e.target.value));
+    renderReparacionesTable('');
+  }
+
+  function renderReparacionesTable(query = '') {
+    const container = document.getElementById('reparacionesTableContainer');
+    if (!container) return;
+    const filtradas = reparaciones.filter(r => !query || matches(r.nombre, query) || matches(r.orden, query) || matches(r.dispositivo, query));
+    if (filtradas.length === 0) {
+      container.innerHTML = `<div class="empty-message">${reparaciones.length === 0 ? 'No hay reparaciones registradas' : 'Sin resultados para tu búsqueda'}</div>`;
+      return;
+    }
+    const ESTADOS = ['pendiente', 'en_progreso', 'completado', 'cancelado'];
+    let html = `<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Orden</th><th>Cliente</th><th>Dispositivo</th><th>Problema</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>`;
+    filtradas.forEach(r => {
+      const estado = r.estado || 'pendiente';
+      const opciones = ESTADOS.map(e => `<option value="${e}" ${e === estado ? 'selected' : ''}>${e.replace('_', ' ')}</option>`).join('');
+      html += `<tr data-id="${r.id}">
+        <td>${r.id}</td>
+        <td>${escapeHtml(r.orden || 'N/A')}</td>
+        <td>${escapeHtml(r.nombre)}</td>
+        <td>${escapeHtml(r.dispositivo || '')} ${escapeHtml(r.modelo || '')}</td>
+        <td>${escapeHtml((r.problema || '').substring(0, 40))}</td>
+        <td><span class="status ${estado}">${estado.replace('_', ' ')}</span></td>
+        <td>${new Date(r.creado_en).toLocaleDateString()}</td>
+        <td>
+          <select class="status-select" data-action="estado">${opciones}</select>
+          <button class="small danger" data-action="eliminar">Eliminar</button>
+        </td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    container.querySelector('table').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action="eliminar"]');
+      if (!btn) return;
+      const id = Number(btn.closest('tr').dataset.id);
+      eliminarRep(id);
+    });
+    container.querySelector('table').addEventListener('change', (e) => {
+      const sel = e.target.closest('select[data-action="estado"]');
+      if (!sel) return;
+      const id = Number(sel.closest('tr').dataset.id);
+      cambiarEstadoRep(id, sel.value);
+    });
+  }
+
+  async function cambiarEstadoRep(id, estado) {
+    const { error } = await adminSupabase.from('reparaciones').update({ estado }).eq('id', id);
+    if (error) { showToast('Error actualizando estado: ' + error.message, 'error'); return; }
+    showToast('Estado actualizado.', 'success');
+    await refresh(['reparaciones']);
+  }
+  function eliminarRep(id) {
+    showConfirm('¿Eliminar esta reparación?', async () => {
+      const { error } = await adminSupabase.from('reparaciones').delete().eq('id', id);
+      if (error) { showToast('Error eliminando: ' + error.message, 'error'); return; }
+      showToast('Reparación eliminada.', 'success');
+      await refresh(['reparaciones']);
+    });
+  }
+
+  // ================= GRÁFICAS =================
+  async function renderGraficas() {
+    const panel = document.getElementById('graficasPanel');
+    if (!panel) return;
+    const totalVentas = ventasReales.length;
+    const ingresosTotales = ventasReales.reduce((s, v) => s + (v.total || 0), 0);
+    const productosUnicos = new Set(ventasReales.map(v => v.nombre_item)).size;
+    const totalClientes = agruparClientes().length;
+    panel.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card"><h3>Total Ventas</h3><p>${totalVentas}</p></div>
+        <div class="stat-card"><h3>Ingresos Totales</h3><p>${formatCurrency(ingresosTotales)}</p></div>
+        <div class="stat-card"><h3>Productos Vendidos</h3><p>${productosUnicos}</p></div>
+        <div class="stat-card"><h3>Clientes con compras</h3><p>${totalClientes}</p></div>
+      </div>
+      <div class="chart-controls">
+        <select id="chartTypeSelect">
+          <option value="mensual" ${currentChartType === 'mensual' ? 'selected' : ''}>📅 Ventas mensuales</option>
+          <option value="diario" ${currentChartType === 'diario' ? 'selected' : ''}>📈 Tendencia diaria</option>
+          <option value="top" ${currentChartType === 'top' ? 'selected' : ''}>🏆 Top productos</option>
+          <option value="rotacion" ${currentChartType === 'rotacion' ? 'selected' : ''}>⚠️ Baja rotación</option>
+          <option value="region" ${currentChartType === 'region' ? 'selected' : ''}>🌎 Ventas por región</option>
+          <option value="clientes" ${currentChartType === 'clientes' ? 'selected' : ''}>👤 Top clientes</option>
+        </select>
+        <select id="chartStyleSelect">
+          <option value="bar" ${currentChartStyle === 'bar' ? 'selected' : ''}>📊 Barras verticales</option>
+          <option value="line" ${currentChartStyle === 'line' ? 'selected' : ''}>📈 Líneas</option>
+          <option value="pie" ${currentChartStyle === 'pie' ? 'selected' : ''}>🥧 Pastel (circular)</option>
+          <option value="doughnut" ${currentChartStyle === 'doughnut' ? 'selected' : ''}>🍩 Dona</option>
+          <option value="area" ${currentChartStyle === 'area' ? 'selected' : ''}>📉 Área</option>
+        </select>
+        <button id="refreshChartBtn">Actualizar gráfica</button>
+      </div>
+      <div class="chart-container"><canvas id="mainChart"></canvas></div>
+    `;
+    await loadChart(currentChartType, currentChartStyle);
+    document.getElementById('chartTypeSelect')?.addEventListener('change', async (e) => { currentChartType = e.target.value; localStorage.setItem('adminChartType', currentChartType); await loadChart(currentChartType, currentChartStyle); });
+    document.getElementById('chartStyleSelect')?.addEventListener('change', async (e) => { currentChartStyle = e.target.value; localStorage.setItem('adminChartStyle', currentChartStyle); await loadChart(currentChartType, currentChartStyle); });
+    document.getElementById('refreshChartBtn')?.addEventListener('click', async () => { await loadChart(currentChartType, currentChartStyle); });
+  }
+
+  async function loadChart(type, style) {
+    if (currentChart) currentChart.destroy();
+    const canvas = document.getElementById('mainChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let labels = [], data = [], titulo = '';
+    let isPieOrDoughnut = (style === 'pie' || style === 'doughnut');
+
+    if (type === 'mensual') {
+      const hoy = new Date(); const meses = []; const valores = [];
+      for (let i = 5; i >= 0; i--) { const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1); meses.push(d.toLocaleString('es', { month: 'short', year: 'numeric' })); valores.push(0); }
+      ventasReales.forEach(v => { const fecha = new Date(v.fecha); const diff = (hoy.getFullYear() - fecha.getFullYear()) * 12 + (hoy.getMonth() - fecha.getMonth()); if (diff >= 0 && diff < 6) valores[5 - diff] += v.total || 0; });
+      labels = meses; data = valores; titulo = 'Ingresos por mes (RD$)';
+    }
+    else if (type === 'diario') {
+      const hoy = new Date(); const dias = []; const valores = [];
+      for (let i = 29; i >= 0; i--) { const d = new Date(hoy); d.setDate(hoy.getDate() - i); dias.push(d.toLocaleDateString('es')); valores.push(0); }
+      ventasReales.forEach(v => { const fecha = new Date(v.fecha); const diffDias = Math.floor((hoy - fecha) / (1000 * 60 * 60 * 24)); if (diffDias >= 0 && diffDias < 30) valores[29 - diffDias] += v.total || 0; });
+      labels = dias; data = valores; titulo = 'Ingresos diarios (últimos 30 días)';
+    }
+    else if (type === 'top') {
+      const prodCount = {};
+      ventasReales.forEach(v => { const nombre = v.nombre_item || (v.producto_id ? productos.find(p => p.id === v.producto_id)?.nombre : 'Desconocido'); if (nombre) prodCount[nombre] = (prodCount[nombre] || 0) + (v.cantidad || 1); });
+      const top = Object.entries(prodCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      labels = top.map(t => t[0]); data = top.map(t => t[1]); titulo = 'Unidades vendidas por producto';
+    }
+    else if (type === 'rotacion') {
+      const prodCount = {};
+      ventasReales.forEach(v => { const nombre = v.nombre_item || (v.producto_id ? productos.find(p => p.id === v.producto_id)?.nombre : 'Desconocido'); if (nombre) prodCount[nombre] = (prodCount[nombre] || 0) + (v.cantidad || 1); });
+      const baja = Object.entries(prodCount).filter(([_, cant]) => cant <= 2);
+      labels = baja.map(t => t[0]); data = baja.map(t => t[1]); titulo = 'Productos con ≤2 ventas';
+      if (labels.length === 0) { canvas.style.display = 'none'; showToast('No hay productos con baja rotación.', 'error'); return; }
+      else canvas.style.display = 'block';
+    }
+    else if (type === 'region') {
+      const regionCount = {};
+      solicitudesVenta.forEach(s => { if (s.region && s.estado === 'completada') regionCount[s.region] = (regionCount[s.region] || 0) + 1; });
+      labels = Object.keys(regionCount); data = Object.values(regionCount); titulo = 'Ventas completadas por región';
+      if (labels.length === 0) { canvas.style.display = 'none'; showToast('No hay datos de región todavía.', 'error'); return; }
+      else canvas.style.display = 'block';
+    }
+    else if (type === 'clientes') {
+      const top = agruparClientes().sort((a, b) => b.compras.length - a.compras.length).slice(0, 10);
+      labels = top.map(c => c.nombre); data = top.map(c => c.compras.length); titulo = 'Compras confirmadas por cliente';
+      if (labels.length === 0) { canvas.style.display = 'none'; showToast('Aún no hay clientes con compras confirmadas.', 'error'); return; }
+      else canvas.style.display = 'block';
+    }
+
+    let chartType = style;
+    if (style === 'area') chartType = 'line';
+    const extraOptions = {};
+    if (style === 'area') extraOptions.fill = true;
+
+    currentChart = new Chart(ctx, {
+      type: chartType,
+      data: {
+        labels,
+        datasets: [{
+          label: titulo,
+          data,
+          backgroundColor: isPieOrDoughnut ? ['#0071e3', '#30d158', '#ff9f0a', '#ff453a', '#5e5ce6', '#bf5af2', '#64d2ff', '#ffd60a'] : '#0071e3',
+          borderColor: '#30d158',
+          borderWidth: 1,
+          ...extraOptions
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: 'white' } } } }
+    });
+  }
+
+  // ================= TABS =================
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
+    if (activeTab) activeTab.classList.add('active');
+    const panels = ['productosPanel', 'accesoriosPanel', 'solicitudesPanel', 'clientesPanel', 'reparacionesPanel', 'graficasPanel'];
+    panels.forEach(pid => { const el = document.getElementById(pid); if (el) el.classList.add('hidden'); });
+    const currentPanel = document.getElementById(`${tabId}Panel`);
+    if (currentPanel) currentPanel.classList.remove('hidden');
+    if (tabId === 'graficas') renderGraficas();
+  }
+  document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
+
+  // ================= LOGIN / LOGOUT =================
+  document.getElementById('loginButton').onclick = async () => {
+    const email = document.getElementById('adminEmail').value, pwd = document.getElementById('adminPassword').value;
+    const { error } = await adminSupabase.auth.signInWithPassword({ email, password: pwd });
+    if (error) showToast('Error: ' + error.message, 'error');
     else checkSession();
   };
-  document.getElementById('logoutBtn').onclick=async()=>{await adminSupabase.auth.signOut(); checkSession();};
+  document.getElementById('logoutBtn').onclick = async () => { await adminSupabase.auth.signOut(); checkSession(); };
   checkSession();
 </script>
 </body>
