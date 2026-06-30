@@ -104,7 +104,7 @@
   </div>
   <div id="adminContainer" class="admin-container hidden">
     <div class="admin-header">
-      <h1><i class="fas fa-chart-line"></i> Panel DLIFE</h1>
+      <h1 id="appTitle" style="cursor: default;"><i class="fas fa-chart-line"></i> Panel DLIFE</h1>
       <button id="logoutBtn" class="logout-btn">Cerrar sesión</button>
     </div>
     <div class="tabs">
@@ -112,7 +112,6 @@
       <div class="tab" data-tab="accesorios">📱 Accesorios</div>
       <div class="tab" data-tab="solicitudes">📋 Solicitudes venta</div>
       <div class="tab" data-tab="clientes">👥 Historial clientes</div>
-      <div class="tab" data-tab="ventasRegistradas">🧾 Ventas registradas</div>
       <div class="tab" data-tab="reparaciones">🔧 Reparaciones</div>
       <div class="tab" data-tab="graficas">📊 Gráficas</div>
     </div>
@@ -144,6 +143,11 @@
   );
 
   const ADMIN_EMAILS = [];
+
+  // Codigo de acceso a la seccion oculta "Ventas registradas". Cambialo por
+  // el que prefieras. Esto NO es seguridad real (vive en el codigo fuente),
+  // es solo para que colaboradores no se topen con esta seccion por curiosidad.
+  const CODIGO_VENTAS_REGISTRADAS = '2606';
 
   let currentUser = null;
   let productos = [], accesorios = [], reparaciones = [], ventasReales = [], solicitudesVenta = [], garantias = [];
@@ -1112,6 +1116,67 @@
     if (tabId === 'graficas') renderGraficas();
   }
   document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.dataset.tab)));
+
+  // ================= ACCESO OCULTO: VENTAS REGISTRADAS =================
+  // 5 clics seguidos (en menos de 3s) sobre el titulo "Panel DLIFE" abren el
+  // prompt del codigo. Una vez correcto, agrega la pestana a la barra y
+  // permanece disponible durante el resto de la sesion (hasta recargar).
+  (function setupAccesoOculto() {
+    const titulo = document.getElementById('appTitle');
+    if (!titulo) return;
+    let clicks = 0;
+    let resetTimer = null;
+    let desbloqueado = false;
+
+    titulo.addEventListener('click', () => {
+      if (desbloqueado) return;
+      clicks++;
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { clicks = 0; }, 3000);
+      if (clicks >= 5) {
+        clicks = 0;
+        pedirCodigoAcceso();
+      }
+    });
+
+    function pedirCodigoAcceso() {
+      const html = `
+        <h2>Acceso restringido</h2>
+        <p style="color:#aaa; font-size:0.85rem; margin-bottom:16px;">Ingresa el código para ver "Ventas registradas".</p>
+        <input type="password" id="codigoAccesoInput" placeholder="Código" inputmode="numeric" autocomplete="off">
+        <div class="button-group" style="margin-top:16px;">
+          <button id="codigoAccesoBtn" class="small">Acceder</button>
+          <button id="codigoCancelBtn" class="small danger">Cancelar</button>
+        </div>`;
+      showModal(html);
+      const input = document.getElementById('codigoAccesoInput');
+      input.focus();
+      const intentar = () => {
+        if (input.value === CODIGO_VENTAS_REGISTRADAS) {
+          closeModal();
+          desbloquear();
+        } else {
+          showToast('Código incorrecto.', 'error');
+        }
+      };
+      document.getElementById('codigoAccesoBtn').onclick = intentar;
+      document.getElementById('codigoCancelBtn').onclick = closeModal;
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') intentar(); });
+    }
+
+    function desbloquear() {
+      desbloqueado = true;
+      const tabsContainer = document.querySelector('.tabs');
+      const nuevaTab = document.createElement('div');
+      nuevaTab.className = 'tab';
+      nuevaTab.dataset.tab = 'ventasRegistradas';
+      nuevaTab.textContent = '🧾 Ventas registradas';
+      nuevaTab.addEventListener('click', () => switchTab('ventasRegistradas'));
+      tabsContainer.appendChild(nuevaTab);
+      showToast('Acceso concedido.', 'success');
+      switchTab('ventasRegistradas');
+    }
+  })();
 
   // ================= LOGIN / LOGOUT =================
   document.getElementById('loginButton').onclick = async () => {
