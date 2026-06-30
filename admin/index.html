@@ -506,11 +506,13 @@
       container.innerHTML = `<div class="empty-message">${pendientes.length === 0 ? 'No hay solicitudes de venta pendientes' : 'Sin resultados para tu búsqueda'}</div>`;
       return;
     }
-    let html = `<div class="table-wrapper"><table><thead><tr><th>Orden</th><th>Producto</th><th>Cliente</th><th>Teléfono</th><th>Email</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>`;
+    let html = `<div class="table-wrapper"><table><thead><tr><th>Orden</th><th>Producto</th><th>Cant.</th><th>Cliente</th><th>Teléfono</th><th>Email</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>`;
     filtradas.forEach(s => {
+      const cantidad = s.cantidad || 1;
       html += `<tr data-id="${s.id}">
         <td>${escapeHtml(s.orden || 'N/A')}</td>
         <td>${escapeHtml(s.producto)}</td>
+        <td><strong>${cantidad}</strong></td>
         <td>${escapeHtml(s.nombre)}</td>
         <td>${escapeHtml(s.telefono)}</td>
         <td>${escapeHtml(s.email || '—')}</td>
@@ -538,6 +540,8 @@
     let tipo = 'producto';
     if (!producto) { producto = accesorios.find(a => a.nombre === solicitud.producto); tipo = 'accesorio'; }
     if (!producto) { showToast('Producto no encontrado en el catálogo.', 'error'); return; }
+
+    const cantidadSolicitada = solicitud.cantidad || 1;
     if (producto.stock <= 0) { showToast(`Stock insuficiente de ${producto.nombre}`, 'error'); return; }
 
     const html = `
@@ -547,9 +551,16 @@
         <div style="padding: 12px; background: rgba(255,255,255,0.04); border-radius: 20px; margin-bottom: 16px;">
           <div style="font-weight: 600; margin-bottom: 8px;">${escapeHtml(producto.nombre)}</div>
           <div style="font-size: 0.85rem; color: #aaa;">Cliente: ${escapeHtml(solicitud.nombre)} · ${escapeHtml(solicitud.telefono)}</div>
+          <div style="font-size: 0.85rem; color: #aaa;">Stock disponible: ${producto.stock}</div>
         </div>
       </div>
-      
+
+      <div class="form-section">
+        <label class="form-label">Cantidad a confirmar</label>
+        <input type="number" id="cantidadInput" min="1" max="${producto.stock}" value="${Math.min(cantidadSolicitada, producto.stock)}">
+        <div class="imei-validation" id="cantidadValidation" style="display:none;"></div>
+      </div>
+
       <div class="form-section">
         <label class="checkbox-group">
           <input type="checkbox" id="tieneGarantia" checked>
@@ -559,77 +570,119 @@
       </div>
 
       <div class="imei-field show" id="imeiField">
-        <label class="form-label">IMEI del equipo</label>
-        <div class="imei-input-wrapper">
-          <input type="text" id="imeiInput" placeholder="Ej: 357414192968594" inputmode="numeric">
-          <div class="imei-validation" id="imeiValidation" style="display: none;"></div>
-        </div>
+        <label class="form-label">IMEI por equipo</label>
+        <div id="imeiInputsContainer"></div>
       </div>
 
       <div class="button-group" style="margin-top: 24px;">
         <button id="confirmVentaBtn" class="small">Confirmar venta</button>
         <button id="cancelVentaBtn" class="small danger">Cancelar</button>
       </div>`;
-    
+
     showModal(html);
 
     const checkbox = document.getElementById('tieneGarantia');
     const imeiField = document.getElementById('imeiField');
-    const imeiInput = document.getElementById('imeiInput');
+    const imeiInputsContainer = document.getElementById('imeiInputsContainer');
     const garantiaBadge = document.getElementById('garantiaBadge');
-    const imeiValidation = document.getElementById('imeiValidation');
+    const cantidadInput = document.getElementById('cantidadInput');
+    const cantidadValidation = document.getElementById('cantidadValidation');
+
+    function renderImeiInputs() {
+      const cantidad = Math.max(1, parseInt(cantidadInput.value) || 1);
+      imeiInputsContainer.innerHTML = '';
+      for (let i = 0; i < cantidad; i++) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'imei-input-wrapper';
+        wrapper.style.marginBottom = '10px';
+        wrapper.innerHTML = `
+          <input type="text" class="imei-unit-input" data-index="${i}" placeholder="IMEI equipo ${i + 1} de ${cantidad}" inputmode="numeric">
+          <div class="imei-validation" data-validation-for="${i}" style="display:none;"></div>`;
+        imeiInputsContainer.appendChild(wrapper);
+      }
+      imeiInputsContainer.querySelectorAll('.imei-unit-input').forEach(input => {
+        input.addEventListener('input', () => validateImeiUnit(input));
+      });
+    }
+
+    function validateImeiUnit(input) {
+      const idx = input.dataset.index;
+      const validationDiv = imeiInputsContainer.querySelector(`[data-validation-for="${idx}"]`);
+      const val = input.value.trim();
+      if (val === '') { validationDiv.style.display = 'none'; return; }
+      const isValid = validateIMEI(val);
+      validationDiv.style.display = 'flex';
+      if (isValid) {
+        validationDiv.className = 'imei-validation valid';
+        validationDiv.innerHTML = '<i class="fas fa-check-circle"></i> <span>IMEI válido</span>';
+      } else {
+        const digitos = val.replace(/\D/g, '').length;
+        validationDiv.className = 'imei-validation invalid';
+        validationDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>Se requieren 15 dígitos (${digitos} detectados)</span>`;
+      }
+    }
+
+    function validarCantidad() {
+      const cantidad = parseInt(cantidadInput.value) || 0;
+      if (cantidad < 1 || cantidad > producto.stock) {
+        cantidadValidation.style.display = 'flex';
+        cantidadValidation.className = 'imei-validation invalid';
+        cantidadValidation.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>Debe ser entre 1 y ${producto.stock} (stock disponible)</span>`;
+        return false;
+      }
+      cantidadValidation.style.display = 'none';
+      return true;
+    }
+
+    cantidadInput.addEventListener('input', () => {
+      validarCantidad();
+      if (checkbox.checked) renderImeiInputs();
+    });
 
     checkbox.addEventListener('change', () => {
       if (checkbox.checked) {
         imeiField.classList.add('show');
         garantiaBadge.className = 'checkbox-badge required';
         garantiaBadge.textContent = 'Obligatorio IMEI';
+        renderImeiInputs();
       } else {
         imeiField.classList.remove('show');
         garantiaBadge.className = 'checkbox-badge optional';
         garantiaBadge.textContent = 'IMEI opcional';
-        imeiValidation.style.display = 'none';
+        imeiInputsContainer.innerHTML = '';
       }
     });
 
-    imeiInput.addEventListener('input', () => {
-      const val = imeiInput.value.trim();
-      if (val === '' && !checkbox.checked) {
-        imeiValidation.style.display = 'none';
-        return;
-      }
-      const isValid = validateIMEI(val);
-      imeiValidation.style.display = 'flex';
-      if (isValid) {
-        imeiValidation.className = 'imei-validation valid';
-        imeiValidation.innerHTML = '<i class="fas fa-check-circle"></i> <span>IMEI válido (15 dígitos)</span>';
-      } else if (val === '') {
-        imeiValidation.style.display = 'none';
-      } else {
-        const digitos = val.replace(/\D/g, '').length;
-        imeiValidation.className = 'imei-validation invalid';
-        imeiValidation.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>Se requieren 15 dígitos (${digitos} detectados)</span>`;
-      }
-    });
+    renderImeiInputs();
 
     document.getElementById('confirmVentaBtn').onclick = async () => {
-      const tieneGarantia = checkbox.checked;
-      const imei = imeiInput.value.trim();
-
-      if (tieneGarantia && !validateIMEI(imei)) {
-        showToast('Ingresa un IMEI válido (15 dígitos) para la garantía.', 'error');
+      const cantidad = parseInt(cantidadInput.value) || 0;
+      if (!validarCantidad()) {
+        showToast(`La cantidad debe ser entre 1 y ${producto.stock}.`, 'error');
         return;
       }
 
-      await confirmarVenta(idSolicitud, producto, tipo, tieneGarantia, imei);
+      const tieneGarantia = checkbox.checked;
+      let imeis = [];
+      if (tieneGarantia) {
+        const inputs = Array.from(imeiInputsContainer.querySelectorAll('.imei-unit-input'));
+        imeis = inputs.map(i => i.value.trim());
+        const todosValidos = imeis.length === cantidad && imeis.every(validateIMEI);
+        if (!todosValidos) {
+          showToast(`Ingresa un IMEI válido (15 dígitos) para cada uno de los ${cantidad} equipos.`, 'error');
+          return;
+        }
+      }
+
+      await confirmarVenta(idSolicitud, producto, tipo, tieneGarantia, imeis, cantidad);
     };
     document.getElementById('cancelVentaBtn').onclick = closeModal;
   }
 
-  async function confirmarVenta(idSolicitud, producto, tipo, tieneGarantia, imei) {
-    const nuevoStock = producto.stock - 1;
+  async function confirmarVenta(idSolicitud, producto, tipo, tieneGarantia, imeis, cantidad) {
+    const nuevoStock = producto.stock - cantidad;
     const tableStock = tipo === 'producto' ? 'productos' : 'accesorios';
-    
+
     const { error: stockError } = await adminSupabase.from(tableStock).update({ stock: nuevoStock }).eq('id', producto.id);
     if (stockError) { showToast('Error actualizando stock: ' + stockError.message, 'error'); return; }
 
@@ -637,10 +690,10 @@
       producto_id: tipo === 'producto' ? producto.id : null,
       nombre_item: producto.nombre,
       tipo_item: tipo,
-      cantidad: 1,
-      total: producto.precio,
+      cantidad: cantidad,
+      total: producto.precio * cantidad,
       fecha: new Date(),
-      imei: imei || null
+      imei: tieneGarantia ? imeis.join(', ') : null
     };
     const { data: ventaInserted, error: ventaError } = await adminSupabase.from('ventas_realizadas').insert([ventaData]).select();
     if (ventaError) { showToast('Error registrando venta: ' + ventaError.message, 'error'); return; }
@@ -649,14 +702,15 @@
     if (tieneGarantia && ventaId) {
       const vistaHasta = new Date();
       vistaHasta.setFullYear(vistaHasta.getFullYear() + 1);
-      const { error: garantiaError } = await adminSupabase.from('garantias').insert([{
+      const filasGarantia = imeis.map(imei => ({
         venta_id: ventaId,
         imei: imei,
         dispositivo: producto.nombre,
         estado: 'activa',
         vigencia_hasta: vistaHasta.toISOString().split('T')[0],
         creado_en: new Date().toISOString()
-      }]);
+      }));
+      const { error: garantiaError } = await adminSupabase.from('garantias').insert(filasGarantia);
       if (garantiaError) showToast('Garantía no guardada: ' + garantiaError.message, 'error');
     }
 
@@ -688,10 +742,11 @@
       }
       const cliente = grupos.get(key);
       const item = productos.find(p => p.nombre === s.producto) || accesorios.find(a => a.nombre === s.producto);
-      const precio = item ? Number(item.precio) || 0 : 0;
+      const precioUnitario = item ? Number(item.precio) || 0 : 0;
+      const cantidad = s.cantidad || 1;
       const tieneGarantia = garantias.some(g => g.nombre_item === s.producto);
-      cliente.compras.push({ producto: s.producto, orden: s.orden, fecha: s.creado_en, precio, tieneGarantia });
-      cliente.totalGastado += precio;
+      cliente.compras.push({ producto: s.producto, orden: s.orden, fecha: s.creado_en, precio: precioUnitario, cantidad, tieneGarantia });
+      cliente.totalGastado += precioUnitario * cantidad;
       if (new Date(s.creado_en) > new Date(cliente.ultimaCompra)) {
         cliente.ultimaCompra = s.creado_en;
         cliente.nombre = s.nombre; cliente.telefono = s.telefono; cliente.email = s.email;
@@ -748,7 +803,7 @@
     const comprasHtml = cliente.compras
       .slice()
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
-      .map(c => `<div><strong>${escapeHtml(c.producto)}</strong>${c.tieneGarantia ? '<span class="guarantee-badge with">Con garantía</span>' : ''}<br><span class="client-row-summary">Orden: ${escapeHtml(c.orden || 'N/A')} · ${new Date(c.fecha).toLocaleDateString()} · ${formatCurrency(c.precio)}</span></div>`)
+      .map(c => `<div><strong>${escapeHtml(c.producto)}</strong>${c.cantidad > 1 ? ` x${c.cantidad}` : ''}${c.tieneGarantia ? '<span class="guarantee-badge with">Con garantía</span>' : ''}<br><span class="client-row-summary">Orden: ${escapeHtml(c.orden || 'N/A')} · ${new Date(c.fecha).toLocaleDateString()} · ${formatCurrency(c.precio * c.cantidad)}</span></div>`)
       .join('');
     const html = `
       <h2 style="margin-bottom:8px;">${escapeHtml(cliente.nombre)}</h2>
