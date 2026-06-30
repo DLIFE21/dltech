@@ -112,6 +112,7 @@
       <div class="tab" data-tab="accesorios">📱 Accesorios</div>
       <div class="tab" data-tab="solicitudes">📋 Solicitudes venta</div>
       <div class="tab" data-tab="clientes">👥 Historial clientes</div>
+      <div class="tab" data-tab="ventasRegistradas">🧾 Ventas registradas</div>
       <div class="tab" data-tab="reparaciones">🔧 Reparaciones</div>
       <div class="tab" data-tab="graficas">📊 Gráficas</div>
     </div>
@@ -119,6 +120,7 @@
     <div id="accesoriosPanel" class="hidden"></div>
     <div id="solicitudesPanel" class="hidden"></div>
     <div id="clientesPanel" class="hidden"></div>
+    <div id="ventasRegistradasPanel" class="hidden"></div>
     <div id="reparacionesPanel" class="hidden"></div>
     <div id="graficasPanel" class="hidden"></div>
   </div>
@@ -279,6 +281,7 @@
     if (keys.includes('accesorios')) renderAccesorios();
     if (keys.includes('reparaciones')) renderReparaciones();
     if (keys.includes('solicitudesVenta')) { renderSolicitudes(); renderClientes(); }
+    if (keys.includes('ventasReales')) renderVentasRegistradas();
     const graficasVisible = !document.getElementById('graficasPanel').classList.contains('hidden');
     if (graficasVisible && (keys.includes('ventasReales') || keys.includes('solicitudesVenta') || keys.includes('productos') || keys.includes('accesorios'))) {
       renderGraficas();
@@ -291,6 +294,7 @@
     renderAccesorios();
     renderSolicitudes();
     renderClientes();
+    renderVentasRegistradas();
     renderReparaciones();
     renderGraficas();
   }
@@ -885,6 +889,106 @@
     });
   }
 
+  // ================= VENTAS REGISTRADAS (corregir cantidad/total) =================
+  // Las graficas e ingresos se calculan sumando directo lo que esta guardado
+  // en ventas_realizadas. Esta vista permite ver y corregir cada venta
+  // individual (por ejemplo, registros antiguos guardados antes de que el
+  // panel calculara correctamente cantidad x precio).
+  function renderVentasRegistradas() {
+    const panel = document.getElementById('ventasRegistradasPanel');
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="panel-toolbar">
+        <input type="text" id="ventasRegSearch" class="search-input" placeholder="🔍 Buscar por producto o IMEI...">
+      </div>
+      <p style="font-size:0.78rem; color:#888; margin-bottom:14px;">Si un total no coincide con cantidad × precio, corrígelo aquí — las gráficas e ingresos usan estos valores directamente.</p>
+      <div id="ventasRegTableContainer"></div>`;
+    document.getElementById('ventasRegSearch').addEventListener('input', (e) => renderVentasRegistradasTable(e.target.value));
+    renderVentasRegistradasTable('');
+  }
+
+  function renderVentasRegistradasTable(query = '') {
+    const container = document.getElementById('ventasRegTableContainer');
+    if (!container) return;
+    const filtradas = ventasReales.filter(v => !query || matches(v.nombre_item, query) || matches(v.imei, query));
+    if (filtradas.length === 0) {
+      container.innerHTML = `<div class="empty-message">${ventasReales.length === 0 ? 'No hay ventas registradas todavía' : 'Sin resultados para tu búsqueda'}</div>`;
+      return;
+    }
+    let html = `<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Producto</th><th>Tipo</th><th>Cantidad</th><th>Total</th><th>IMEI</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>`;
+    filtradas.forEach(v => {
+      const cantidad = v.cantidad || 1;
+      const total = Number(v.total) || 0;
+      const esperado = cantidad > 0 ? total / cantidad : total;
+      html += `<tr data-id="${v.id}">
+        <td>${v.id}</td>
+        <td>${escapeHtml(v.nombre_item)}</td>
+        <td>${escapeHtml(v.tipo_item || '—')}</td>
+        <td>${cantidad}</td>
+        <td>${formatCurrency(total)}</td>
+        <td>${escapeHtml(v.imei || '—')}</td>
+        <td>${new Date(v.fecha).toLocaleDateString()}</td>
+        <td><button class="small" data-action="editar">Corregir</button><button class="small danger" data-action="eliminar">Eliminar</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    container.querySelector('table').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const id = Number(btn.closest('tr').dataset.id);
+      if (btn.dataset.action === 'editar') editarVentaRegistrada(id);
+      if (btn.dataset.action === 'eliminar') eliminarVentaRegistrada(id);
+    });
+  }
+
+  function editarVentaRegistrada(id) {
+    const venta = ventasReales.find(v => v.id === id);
+    if (!venta) { showToast('Venta no encontrada.', 'error'); return; }
+
+    const html = `
+      <h2>Corregir venta #${id}</h2>
+      <div class="form-section">
+        <div style="padding: 12px; background: rgba(255,255,255,0.04); border-radius: 20px; margin-bottom: 16px;">
+          <div style="font-weight: 600;">${escapeHtml(venta.nombre_item)}</div>
+          <div style="font-size: 0.8rem; color: #aaa;">${new Date(venta.fecha).toLocaleString()}</div>
+        </div>
+      </div>
+      <label class="form-label">Cantidad</label>
+      <input type="number" id="editCantidad" min="1" value="${venta.cantidad || 1}">
+      <label class="form-label">Total (RD$)</label>
+      <input type="number" id="editTotal" min="0" value="${venta.total || 0}">
+      <div class="button-group" style="margin-top:24px;">
+        <button id="saveVentaRegBtn" class="small">Guardar</button>
+        <button id="cancelVentaRegBtn" class="small danger">Cancelar</button>
+      </div>`;
+    showModal(html);
+
+    document.getElementById('saveVentaRegBtn').onclick = async () => {
+      const cantidad = parseInt(document.getElementById('editCantidad').value);
+      const total = Number(document.getElementById('editTotal').value);
+      if (!cantidad || cantidad < 1 || isNaN(total) || total < 0) {
+        showToast('Ingresa valores válidos para cantidad y total.', 'error');
+        return;
+      }
+      const { error } = await adminSupabase.from('ventas_realizadas').update({ cantidad, total }).eq('id', id);
+      if (error) { showToast('Error guardando: ' + error.message, 'error'); return; }
+      closeModal();
+      showToast('Venta corregida.', 'success');
+      await refresh(['ventasReales']);
+    };
+    document.getElementById('cancelVentaRegBtn').onclick = closeModal;
+  }
+
+  function eliminarVentaRegistrada(id) {
+    showConfirm('¿Eliminar este registro de venta? Esto no devuelve el stock automáticamente.', async () => {
+      const { error } = await adminSupabase.from('ventas_realizadas').delete().eq('id', id);
+      if (error) { showToast('Error eliminando: ' + error.message, 'error'); return; }
+      showToast('Registro eliminado.', 'success');
+      await refresh(['ventasReales']);
+    }, 'Eliminar');
+  }
+
   // ================= GRÁFICAS =================
   async function renderGraficas() {
     const panel = document.getElementById('graficasPanel');
@@ -1001,7 +1105,7 @@
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
     if (activeTab) activeTab.classList.add('active');
-    const panels = ['productosPanel', 'accesoriosPanel', 'solicitudesPanel', 'clientesPanel', 'reparacionesPanel', 'graficasPanel'];
+    const panels = ['productosPanel', 'accesoriosPanel', 'solicitudesPanel', 'clientesPanel', 'ventasRegistradasPanel', 'reparacionesPanel', 'graficasPanel'];
     panels.forEach(pid => { const el = document.getElementById(pid); if (el) el.classList.add('hidden'); });
     const currentPanel = document.getElementById(`${tabId}Panel`);
     if (currentPanel) currentPanel.classList.remove('hidden');
