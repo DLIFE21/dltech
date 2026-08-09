@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -723,7 +723,8 @@
       fecha: new Date(),
       imei: tieneGarantia ? imeis.join(', ') : null,
       cliente_nombre: solicitudOriginal?.nombre || null,
-      cliente_telefono: solicitudOriginal?.telefono || null
+      cliente_telefono: solicitudOriginal?.telefono || null,
+      solicitud_id: idSolicitud
     };
     const { data: ventaInserted, error: ventaError } = await adminSupabase.from('ventas_realizadas').insert([ventaData]).select();
     if (ventaError) { showToast('Error registrando venta: ' + ventaError.message, 'error'); return; }
@@ -766,6 +767,22 @@
     return (s.telefono || s.email || s.nombre || 'desconocido').toString().trim().toLowerCase();
   }
 
+  // Busca la venta real correspondiente a una solicitud completada, para usar
+  // su precio y cantidad reales en vez de adivinar con el precio actual del
+  // catalogo (que falla si el producto fue borrado o renombrado despues).
+  // 1) Coincidencia exacta por solicitud_id (ventas confirmadas desde este fix en adelante).
+  // 2) Respaldo para ventas antiguas: mismo producto + mismo telefono, la mas cercana en fecha.
+  function encontrarVentaParaSolicitud(s) {
+    let venta = ventasReales.find(v => v.solicitud_id === s.id);
+    if (venta) return venta;
+    const mismoProducto = ventasReales.filter(v => v.nombre_item === s.producto);
+    if (mismoProducto.length === 0) return null;
+    const conTelefono = s.telefono ? mismoProducto.filter(v => v.cliente_telefono === s.telefono) : [];
+    const candidatas = conTelefono.length > 0 ? conTelefono : mismoProducto;
+    candidatas.sort((a, b) => Math.abs(new Date(a.fecha) - new Date(s.creado_en)) - Math.abs(new Date(b.fecha) - new Date(s.creado_en)));
+    return candidatas[0] || null;
+  }
+
   function agruparClientes() {
     const completadas = solicitudesVenta.filter(s => s.estado === 'completada');
     const grupos = new Map();
@@ -775,11 +792,18 @@
         grupos.set(key, { key, nombre: s.nombre, telefono: s.telefono, email: s.email, compras: [], totalGastado: 0, ultimaCompra: s.creado_en });
       }
       const cliente = grupos.get(key);
-      const item = productos.find(p => p.nombre === s.producto) || accesorios.find(a => a.nombre === s.producto);
-      const precioUnitario = item ? Number(item.precio) || 0 : 0;
-      const cantidad = s.cantidad || 1;
+      const ventaMatch = encontrarVentaParaSolicitud(s);
+      let precioUnitario, cantidad;
+      if (ventaMatch) {
+        cantidad = ventaMatch.cantidad || 1;
+        precioUnitario = cantidad > 0 ? (ventaMatch.total || 0) / cantidad : (ventaMatch.total || 0);
+      } else {
+        const item = productos.find(p => p.nombre === s.producto) || accesorios.find(a => a.nombre === s.producto);
+        precioUnitario = item ? Number(item.precio) || 0 : 0;
+        cantidad = s.cantidad || 1;
+      }
       const tieneGarantia = garantias.some(g => g.nombre_item === s.producto);
-      cliente.compras.push({ producto: s.producto, orden: s.orden, fecha: s.creado_en, precio: precioUnitario, cantidad, tieneGarantia });
+      cliente.compras.push({ producto: s.producto, orden: s.orden, fecha: s.creado_en, precio: precioUnitario, cantidad, tieneGarantia, ventaId: ventaMatch ? ventaMatch.id : null });
       cliente.totalGastado += precioUnitario * cantidad;
       if (new Date(s.creado_en) > new Date(cliente.ultimaCompra)) {
         cliente.ultimaCompra = s.creado_en;
@@ -1012,11 +1036,28 @@
   }
 
   function eliminarVentaRegistrada(id) {
-    showConfirm('¿Eliminar este registro de venta? Esto no devuelve el stock automáticamente.', async () => {
+    const venta = ventasReales.find(v => v.id === id);
+    showConfirm('¿Eliminar este registro de venta? Esto no devuelve el stock automáticamente. La solicitud del cliente relacionada volverá a "pendiente" para que la reproceses o la elimines tú mismo.', async () => {
       const { error } = await adminSupabase.from('ventas_realizadas').delete().eq('id', id);
       if (error) { showToast('Error eliminando: ' + error.message, 'error'); return; }
-      showToast('Registro eliminado.', 'success');
-      await refresh(['ventasReales']);
+
+      // Intenta revertir la solicitud vinculada para que no quede "fantasma" en el Historial de clientes
+      let solicitudVinculada = null;
+      if (venta?.solicitud_id) {
+        solicitudVinculada = solicitudesVenta.find(s => s.id === venta.solicitud_id);
+      }
+      if (!solicitudVinculada && venta) {
+        solicitudVinculada = solicitudesVenta.find(s => s.estado === 'completada' && s.producto === venta.nombre_item && (s.telefono || '') === (venta.cliente_telefono || ''));
+      }
+
+      if (solicitudVinculada) {
+        const { error: revertError } = await adminSupabase.from('ventas_contactos').update({ estado: 'pendiente' }).eq('id', solicitudVinculada.id);
+        if (revertError) showToast('Venta eliminada, pero no se pudo revertir la solicitud: ' + revertError.message, 'error');
+        else showToast('Venta eliminada. La solicitud volvió a pendiente.', 'success');
+      } else {
+        showToast('Venta eliminada. No se encontró una solicitud vinculada (registro antiguo).', 'success');
+      }
+      await refresh(['ventasReales', 'solicitudesVenta']);
     }, 'Eliminar');
   }
 
