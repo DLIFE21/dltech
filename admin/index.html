@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, sans-serif; background: #0a0a0c; color: #fff; padding: 24px; }
@@ -112,6 +113,8 @@
       <div class="tab" data-tab="accesorios">📱 Accesorios</div>
       <div class="tab" data-tab="solicitudes">📋 Solicitudes venta</div>
       <div class="tab" data-tab="clientes">👥 Historial clientes</div>
+      <div class="tab" data-tab="facturacion">🧾 Facturación</div>
+      <div class="tab" data-tab="puntos">🏆 Puntos y referidos</div>
       <div class="tab" data-tab="reparaciones">🔧 Reparaciones</div>
       <div class="tab" data-tab="graficas">📊 Gráficas</div>
     </div>
@@ -119,6 +122,8 @@
     <div id="accesoriosPanel" class="hidden"></div>
     <div id="solicitudesPanel" class="hidden"></div>
     <div id="clientesPanel" class="hidden"></div>
+    <div id="facturacionPanel" class="hidden"></div>
+    <div id="puntosPanel" class="hidden"></div>
     <div id="ventasRegistradasPanel" class="hidden"></div>
     <div id="reparacionesPanel" class="hidden"></div>
     <div id="graficasPanel" class="hidden"></div>
@@ -150,7 +155,7 @@
   const CODIGO_VENTAS_REGISTRADAS = '2606';
 
   let currentUser = null;
-  let productos = [], accesorios = [], reparaciones = [], ventasReales = [], solicitudesVenta = [], garantias = [];
+  let productos = [], accesorios = [], reparaciones = [], ventasReales = [], solicitudesVenta = [], garantias = [], facturas = [], referidos = [];
   let activeModal = null;
   let currentChart = null;
   let currentChartType = localStorage.getItem('adminChartType') || 'mensual';
@@ -272,11 +277,14 @@
   async function loadVentasReales() { ventasReales = await fetchTable('ventas_realizadas', 'fecha', false); }
   async function loadSolicitudesVenta() { solicitudesVenta = await fetchTable('ventas_contactos', 'creado_en', false); }
   async function loadGarantias() { garantias = await fetchTable('garantias', 'creado_en', false); }
+  async function loadFacturas() { facturas = await fetchTable('facturas', 'creado_en', false); }
+  async function loadReferidos() { referidos = await fetchTable('referidos', 'creado_en', false); }
 
   const LOADERS = { 
     productos: loadProductos, accesorios: loadAccesorios, 
     reparaciones: loadReparaciones, ventasReales: loadVentasReales, 
-    solicitudesVenta: loadSolicitudesVenta, garantias: loadGarantias 
+    solicitudesVenta: loadSolicitudesVenta, garantias: loadGarantias,
+    facturas: loadFacturas, referidos: loadReferidos
   };
 
   async function refresh(keys) {
@@ -286,6 +294,11 @@
     if (keys.includes('reparaciones')) renderReparaciones();
     if (keys.includes('solicitudesVenta')) { renderSolicitudes(); renderClientes(); }
     if (keys.includes('ventasReales')) renderVentasRegistradas();
+    if (keys.includes('facturas')) renderFacturacion();
+    const puntosVisible = !document.getElementById('puntosPanel').classList.contains('hidden');
+    if (puntosVisible && (keys.includes('referidos') || keys.includes('solicitudesVenta') || keys.includes('productos') || keys.includes('accesorios'))) {
+      renderPuntos();
+    }
     const graficasVisible = !document.getElementById('graficasPanel').classList.contains('hidden');
     if (graficasVisible && (keys.includes('ventasReales') || keys.includes('solicitudesVenta') || keys.includes('productos') || keys.includes('accesorios'))) {
       renderGraficas();
@@ -299,6 +312,8 @@
     renderSolicitudes();
     renderClientes();
     renderVentasRegistradas();
+    renderFacturacion();
+    renderPuntos();
     renderReparaciones();
     renderGraficas();
   }
@@ -326,13 +341,14 @@
       container.innerHTML = `<div class="empty-message">${productos.length === 0 ? 'No hay productos registrados' : 'Sin resultados para tu búsqueda'}</div>`;
       return;
     }
-    let html = `<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Precio</th><th>Stock</th><th>Imagen</th><th>Acciones</th></tr></thead><tbody>`;
+    let html = `<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Precio</th><th>Puntos</th><th>Stock</th><th>Imagen</th><th>Acciones</th></tr></thead><tbody>`;
     filtrados.forEach(p => {
       html += `<tr data-id="${p.id}">
         <td>${p.id}</td>
         <td>${escapeHtml(p.nombre)}</td>
         <td>${escapeHtml(p.tipo)}</td>
         <td>${formatCurrency(p.precio)}</td>
+        <td>${p.puntos || 0}</td>
         <td>${p.stock}</td>
         <td>${p.imagen_url ? `<img src="${escapeHtml(p.imagen_url)}" width="40">` : '—'}</td>
         <td><button class="small" data-action="edit">Editar</button><button class="small danger" data-action="delete">Eliminar</button></td>
@@ -372,12 +388,13 @@
       container.innerHTML = `<div class="empty-message">${accesorios.length === 0 ? 'No hay accesorios registrados' : 'Sin resultados para tu búsqueda'}</div>`;
       return;
     }
-    let html = `<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Imagen</th><th>Acciones</th></tr></thead><tbody>`;
+    let html = `<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Puntos</th><th>Stock</th><th>Imagen</th><th>Acciones</th></tr></thead><tbody>`;
     filtrados.forEach(a => {
       html += `<tr data-id="${a.id}">
         <td>${a.id}</td>
         <td>${escapeHtml(a.nombre)}</td>
         <td>${formatCurrency(a.precio)}</td>
+        <td>${a.puntos || 0}</td>
         <td>${a.stock}</td>
         <td>${a.imagen_url ? `<img src="${escapeHtml(a.imagen_url)}" width="40">` : '—'}</td>
         <td><button class="small" data-action="edit">Editar</button><button class="small danger" data-action="delete">Eliminar</button></td>
@@ -403,6 +420,7 @@
       { key: 'tipo', label: 'Tipo', type: 'text' },
       { key: 'precio', label: 'Precio RD$', type: 'number', required: true },
       { key: 'stock', label: 'Stock', type: 'number', required: true },
+      { key: 'puntos', label: 'Puntos por unidad (para el ranking de referidos)', type: 'number' },
     ],
     afterSave: () => refresh(['productos'])
   };
@@ -413,6 +431,7 @@
       { key: 'nombre', label: 'Nombre', type: 'text', required: true },
       { key: 'precio', label: 'Precio RD$', type: 'number', required: true },
       { key: 'stock', label: 'Stock', type: 'number', required: true },
+      { key: 'puntos', label: 'Puntos por unidad (para el ranking de referidos)', type: 'number' },
     ],
     afterSave: () => refresh(['accesorios'])
   };
@@ -688,6 +707,7 @@
   }
 
   async function confirmarVenta(idSolicitud, producto, tipo, tieneGarantia, imeis, cantidad) {
+    const solicitudOriginal = solicitudesVenta.find(s => s.id === idSolicitud);
     const nuevoStock = producto.stock - cantidad;
     const tableStock = tipo === 'producto' ? 'productos' : 'accesorios';
 
@@ -701,7 +721,9 @@
       cantidad: cantidad,
       total: producto.precio * cantidad,
       fecha: new Date(),
-      imei: tieneGarantia ? imeis.join(', ') : null
+      imei: tieneGarantia ? imeis.join(', ') : null,
+      cliente_nombre: solicitudOriginal?.nombre || null,
+      cliente_telefono: solicitudOriginal?.telefono || null
     };
     const { data: ventaInserted, error: ventaError } = await adminSupabase.from('ventas_realizadas').insert([ventaData]).select();
     if (ventaError) { showToast('Error registrando venta: ' + ventaError.message, 'error'); return; }
@@ -740,13 +762,17 @@
   }
 
   // ================= HISTORIAL DE CLIENTES =================
+  function getClienteKey(s) {
+    return (s.telefono || s.email || s.nombre || 'desconocido').toString().trim().toLowerCase();
+  }
+
   function agruparClientes() {
     const completadas = solicitudesVenta.filter(s => s.estado === 'completada');
     const grupos = new Map();
     completadas.forEach(s => {
-      const key = (s.telefono || s.email || s.nombre || 'desconocido').toString().trim().toLowerCase();
+      const key = getClienteKey(s);
       if (!grupos.has(key)) {
-        grupos.set(key, { nombre: s.nombre, telefono: s.telefono, email: s.email, compras: [], totalGastado: 0, ultimaCompra: s.creado_en });
+        grupos.set(key, { key, nombre: s.nombre, telefono: s.telefono, email: s.email, compras: [], totalGastado: 0, ultimaCompra: s.creado_en });
       }
       const cliente = grupos.get(key);
       const item = productos.find(p => p.nombre === s.producto) || accesorios.find(a => a.nombre === s.producto);
@@ -932,7 +958,7 @@
         <td>${formatCurrency(total)}</td>
         <td>${escapeHtml(v.imei || '—')}</td>
         <td>${new Date(v.fecha).toLocaleDateString()}</td>
-        <td><button class="small" data-action="editar">Corregir</button><button class="small danger" data-action="eliminar">Eliminar</button></td>
+        <td><button class="small" data-action="editar">Corregir</button><button class="small" data-action="factura">Generar factura</button><button class="small danger" data-action="eliminar">Eliminar</button></td>
       </tr>`;
     });
     html += `</tbody></table></div>`;
@@ -942,6 +968,7 @@
       if (!btn) return;
       const id = Number(btn.closest('tr').dataset.id);
       if (btn.dataset.action === 'editar') editarVentaRegistrada(id);
+      if (btn.dataset.action === 'factura') generarFacturaDesdeVenta(id);
       if (btn.dataset.action === 'eliminar') eliminarVentaRegistrada(id);
     });
   }
@@ -991,6 +1018,367 @@
       showToast('Registro eliminado.', 'success');
       await refresh(['ventasReales']);
     }, 'Eliminar');
+  }
+
+  // ================= FACTURACIÓN =================
+  // Las facturas son documentos independientes para impresión/imagen — no
+  // afectan stock ni ingresos por si mismas. Se pueden crear desde cero
+  // (venta de mostrador) o generar a partir de una venta ya registrada.
+  function generarNumeroFactura() {
+    const n = facturas.length + 1;
+    return `F-${String(n).padStart(5, '0')}`;
+  }
+
+  function renderFacturacion() {
+    const panel = document.getElementById('facturacionPanel');
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="panel-toolbar">
+        <button id="addFacturaBtn" class="small">+ Nueva factura</button>
+        <input type="text" id="facturasSearch" class="search-input" placeholder="🔍 Buscar por cliente, producto o número...">
+      </div>
+      <div id="facturasTableContainer"></div>`;
+    document.getElementById('addFacturaBtn').onclick = () => showFacturaForm();
+    document.getElementById('facturasSearch').addEventListener('input', (e) => renderFacturasTable(e.target.value));
+    renderFacturasTable('');
+  }
+
+  function renderFacturasTable(query = '') {
+    const container = document.getElementById('facturasTableContainer');
+    if (!container) return;
+    const filtradas = facturas.filter(f => !query || matches(f.numero_factura, query) || matches(f.cliente_nombre, query) || matches(f.producto, query));
+    if (filtradas.length === 0) {
+      container.innerHTML = `<div class="empty-message">${facturas.length === 0 ? 'No hay facturas generadas todavía' : 'Sin resultados para tu búsqueda'}</div>`;
+      return;
+    }
+    let html = `<div class="table-wrapper"><table><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Vendedor</th><th>Total</th><th>Acciones</th></tr></thead><tbody>`;
+    filtradas.forEach(f => {
+      html += `<tr data-id="${f.id}">
+        <td>${escapeHtml(f.numero_factura)}</td>
+        <td>${f.fecha_venta ? new Date(f.fecha_venta).toLocaleDateString() : '—'}</td>
+        <td>${escapeHtml(f.cliente_nombre)}</td>
+        <td>${escapeHtml(f.producto)}</td>
+        <td>${escapeHtml(f.vendedor || '—')}</td>
+        <td>${formatCurrency(f.total)}</td>
+        <td><button class="small" data-action="ver">Ver / Descargar</button><button class="small danger" data-action="eliminar">Eliminar</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+    container.querySelector('table').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const id = Number(btn.closest('tr').dataset.id);
+      const factura = facturas.find(f => f.id === id);
+      if (btn.dataset.action === 'ver' && factura) mostrarFacturaPreview(factura);
+      if (btn.dataset.action === 'eliminar') eliminarFactura(id);
+    });
+  }
+
+  function generarFacturaDesdeVenta(id) {
+    const venta = ventasReales.find(v => v.id === id);
+    if (!venta) { showToast('Venta no encontrada.', 'error'); return; }
+    const cantidad = venta.cantidad || 1;
+    const precioUnitario = cantidad > 0 ? (venta.total || 0) / cantidad : (venta.total || 0);
+    showFacturaForm({
+      producto: venta.nombre_item,
+      cantidad,
+      precio: precioUnitario,
+      fecha_venta: venta.fecha ? new Date(venta.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      cliente_nombre: venta.cliente_nombre || '',
+      cliente_telefono: venta.cliente_telefono || '',
+      venta_id: venta.id
+    });
+  }
+
+  function showFacturaForm(prefill = null) {
+    const p = prefill || {};
+    const html = `
+      <h2>${p.venta_id ? 'Generar factura desde venta' : 'Nueva factura'}</h2>
+      <label class="form-label">Número de factura</label>
+      <input type="text" id="facNumero" value="${escapeHtml(generarNumeroFactura())}">
+      <label class="form-label">Fecha de venta</label>
+      <input type="date" id="facFecha" value="${escapeHtml(p.fecha_venta || new Date().toISOString().split('T')[0])}">
+      <label class="form-label">Vendedor / quién despachó</label>
+      <input type="text" id="facVendedor" placeholder="Nombre del vendedor" value="${escapeHtml(currentUser?.email || '')}">
+      <label class="form-label">Cliente</label>
+      <input type="text" id="facCliente" placeholder="Nombre del cliente" value="${escapeHtml(p.cliente_nombre || '')}">
+      <input type="text" id="facTelefono" placeholder="Teléfono (opcional)" value="${escapeHtml(p.cliente_telefono || '')}">
+      <label class="form-label">Equipo vendido</label>
+      <input type="text" id="facProducto" placeholder="Producto" value="${escapeHtml(p.producto || '')}">
+      <input type="number" id="facCantidad" placeholder="Cantidad" min="1" value="${p.cantidad || 1}">
+      <input type="number" id="facPrecio" placeholder="Precio unitario RD$" min="0" value="${p.precio || ''}">
+      <label class="form-label">Detalles para la factura (no se guardan en el catálogo)</label>
+      <input type="text" id="facColor" placeholder="Color">
+      <input type="text" id="facAlmacenamiento" placeholder="Almacenamiento (ej: 256GB)">
+      <div class="button-group" style="margin-top:20px;">
+        <button id="guardarFacturaBtn" class="small">Generar factura</button>
+        <button id="cancelarFacturaBtn" class="small danger">Cancelar</button>
+      </div>`;
+    showModal(html);
+
+    document.getElementById('guardarFacturaBtn').onclick = async () => {
+      const numero_factura = document.getElementById('facNumero').value.trim();
+      const fecha_venta = document.getElementById('facFecha').value;
+      const vendedor = document.getElementById('facVendedor').value.trim();
+      const cliente_nombre = document.getElementById('facCliente').value.trim();
+      const cliente_telefono = document.getElementById('facTelefono').value.trim();
+      const producto = document.getElementById('facProducto').value.trim();
+      const cantidad = parseInt(document.getElementById('facCantidad').value) || 1;
+      const precio = Number(document.getElementById('facPrecio').value);
+      const color = document.getElementById('facColor').value.trim();
+      const almacenamiento = document.getElementById('facAlmacenamiento').value.trim();
+
+      if (!numero_factura || !cliente_nombre || !producto || isNaN(precio) || precio < 0) {
+        showToast('Completa número de factura, cliente, producto y precio.', 'error');
+        return;
+      }
+
+      const facturaData = {
+        numero_factura, fecha_venta, vendedor, cliente_nombre, cliente_telefono,
+        producto, cantidad, precio, total: precio * cantidad,
+        color, almacenamiento, venta_id: p.venta_id || null,
+        creado_en: new Date().toISOString()
+      };
+      const { data: inserted, error } = await adminSupabase.from('facturas').insert([facturaData]).select();
+      if (error) { showToast('Error guardando factura: ' + error.message, 'error'); return; }
+      closeModal();
+      showToast('Factura generada.', 'success');
+      await refresh(['facturas']);
+      if (inserted?.[0]) mostrarFacturaPreview(inserted[0]);
+    };
+    document.getElementById('cancelarFacturaBtn').onclick = closeModal;
+  }
+
+  function eliminarFactura(id) {
+    showConfirm('¿Eliminar esta factura?', async () => {
+      const { error } = await adminSupabase.from('facturas').delete().eq('id', id);
+      if (error) { showToast('Error eliminando: ' + error.message, 'error'); return; }
+      showToast('Factura eliminada.', 'success');
+      await refresh(['facturas']);
+    });
+  }
+
+  function mostrarFacturaPreview(factura) {
+    const fecha = factura.fecha_venta ? new Date(factura.fecha_venta).toLocaleDateString('es-DO') : '—';
+    const html = `
+      <div id="facturaPreview" style="background:#ffffff;color:#111111;padding:32px;border-radius:20px;font-family:'Inter',sans-serif;">
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="font-size:1.4rem;font-weight:700;">DLIFE Technologies</div>
+          <div style="font-size:0.8rem;color:#555;">Especialistas certificados en Apple</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:20px;border-bottom:1px solid #ddd;padding-bottom:16px;gap:16px;">
+          <div>
+            <div><strong>Factura:</strong> ${escapeHtml(factura.numero_factura)}</div>
+            <div><strong>Fecha:</strong> ${fecha}</div>
+            <div><strong>Despachado por:</strong> ${escapeHtml(factura.vendedor || '—')}</div>
+          </div>
+          <div style="text-align:right;">
+            <div><strong>Cliente:</strong> ${escapeHtml(factura.cliente_nombre)}</div>
+            ${factura.cliente_telefono ? `<div>${escapeHtml(factura.cliente_telefono)}</div>` : ''}
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:20px;">
+          <thead>
+            <tr style="border-bottom:2px solid #111;">
+              <th style="text-align:left;padding:6px 4px;">Equipo</th>
+              <th style="text-align:left;padding:6px 4px;">Color</th>
+              <th style="text-align:left;padding:6px 4px;">Almacenamiento</th>
+              <th style="text-align:center;padding:6px 4px;">Cant.</th>
+              <th style="text-align:right;padding:6px 4px;">Precio unit.</th>
+              <th style="text-align:right;padding:6px 4px;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:8px 4px;">${escapeHtml(factura.producto)}</td>
+              <td style="padding:8px 4px;">${escapeHtml(factura.color || '—')}</td>
+              <td style="padding:8px 4px;">${escapeHtml(factura.almacenamiento || '—')}</td>
+              <td style="text-align:center;padding:8px 4px;">${factura.cantidad}</td>
+              <td style="text-align:right;padding:8px 4px;">${formatCurrency(factura.precio)}</td>
+              <td style="text-align:right;padding:8px 4px;">${formatCurrency(factura.total)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="text-align:right;font-size:1.1rem;font-weight:700;border-top:2px solid #111;padding-top:12px;">
+          Total: ${formatCurrency(factura.total)}
+        </div>
+        <div style="text-align:center;margin-top:24px;font-size:0.75rem;color:#777;">
+          Gracias por confiar en DLIFE Technologies
+        </div>
+      </div>
+      <div class="button-group" style="margin-top:20px;">
+        <button id="downloadFacturaBtn" class="small">Descargar como imagen</button>
+        <button id="closeFacturaBtn" class="small danger">Cerrar</button>
+      </div>`;
+    showModal(html);
+    document.getElementById('downloadFacturaBtn').onclick = async () => {
+      const node = document.getElementById('facturaPreview');
+      try {
+        const canvas = await html2canvas(node, { backgroundColor: '#ffffff', scale: 2 });
+        const link = document.createElement('a');
+        link.download = `Factura-${factura.numero_factura}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (err) {
+        showToast('Error generando la imagen: ' + err.message, 'error');
+      }
+    };
+    document.getElementById('closeFacturaBtn').onclick = closeModal;
+  }
+
+  // ================= PUNTOS Y REFERIDOS =================
+  // Los puntos NUNCA se guardan acumulados — se recalculan en vivo cada vez
+  // a partir de las compras reales y los vinculos activos en `referidos`.
+  // Esto hace que fusionar o quitar una fusion sea instantaneo y siempre
+  // recalcule el historial completo correctamente, sin datos corruptos.
+  function getPuntosPorUnidad(nombreItem) {
+    const item = productos.find(p => p.nombre === nombreItem) || accesorios.find(a => a.nombre === nombreItem);
+    return item ? Number(item.puntos) || 0 : 0;
+  }
+
+  function calcularRankingPuntos() {
+    const clientesBase = agruparClientes();
+    const referidosActivos = referidos.filter(r => r.activo);
+    const referidorDe = new Map(referidosActivos.map(r => [r.referido_key, r.referidor_key]));
+
+    function raizReferidor(key, visited = new Set()) {
+      if (visited.has(key)) return key;
+      visited.add(key);
+      const arriba = referidorDe.get(key);
+      if (!arriba || arriba === key) return key;
+      return raizReferidor(arriba, visited);
+    }
+
+    const resultado = new Map();
+    clientesBase.forEach(c => {
+      const puntosPropios = c.compras.reduce((sum, compra) => sum + getPuntosPorUnidad(compra.producto) * compra.cantidad, 0);
+      resultado.set(c.key, { cliente: c, puntosPropios, puntosTotal: puntosPropios, comprasTotal: c.compras.length, fusionadoCon: null, fusionadosDe: [] });
+    });
+
+    clientesBase.forEach(c => {
+      if (referidorDe.has(c.key)) {
+        const raiz = raizReferidor(c.key);
+        if (raiz !== c.key && resultado.has(raiz)) {
+          resultado.get(raiz).puntosTotal += resultado.get(c.key).puntosPropios;
+          resultado.get(raiz).comprasTotal += resultado.get(c.key).comprasTotal;
+          resultado.get(raiz).fusionadosDe.push(c.nombre);
+          resultado.get(c.key).fusionadoCon = resultado.get(raiz).cliente.nombre;
+        }
+      }
+    });
+
+    const ranking = Array.from(resultado.values())
+      .filter(r => !r.fusionadoCon)
+      .sort((a, b) => b.puntosTotal - a.puntosTotal);
+    const fusionados = Array.from(resultado.values()).filter(r => r.fusionadoCon);
+
+    return { ranking, fusionados, todos: resultado };
+  }
+
+  function renderPuntos() {
+    const panel = document.getElementById('puntosPanel');
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="panel-toolbar">
+        <input type="text" id="puntosSearch" class="search-input" placeholder="🔍 Buscar cliente...">
+      </div>
+      <p style="font-size:0.78rem; color:#888; margin-bottom:14px;">Configura los puntos por unidad editando el producto/accesorio desde su pestaña ("Puntos por unidad"). Las fusiones se recalculan siempre desde el historial completo.</p>
+      <div id="puntosTableContainer"></div>`;
+    document.getElementById('puntosSearch').addEventListener('input', (e) => renderPuntosTable(e.target.value));
+    renderPuntosTable('');
+  }
+
+  function renderPuntosTable(query = '') {
+    const container = document.getElementById('puntosTableContainer');
+    if (!container) return;
+    const { ranking, fusionados, todos } = calcularRankingPuntos();
+    const filtrado = ranking.filter(r => !query || matches(r.cliente.nombre, query) || matches(r.cliente.telefono, query));
+
+    if (ranking.length === 0) {
+      container.innerHTML = `<div class="empty-message">Aún no hay clientes con puntos</div>`;
+      return;
+    }
+    if (filtrado.length === 0) {
+      container.innerHTML = `<div class="empty-message">Sin resultados para tu búsqueda</div>`;
+      return;
+    }
+
+    let html = `<div class="table-wrapper"><table><thead><tr><th>#</th><th>Cliente</th><th>Compras (con fusiones)</th><th>Puntos</th><th>Fusiones recibidas</th><th>Acciones</th></tr></thead><tbody>`;
+    filtrado.forEach((r, idx) => {
+      html += `<tr data-key="${escapeHtml(r.cliente.key)}">
+        <td>${idx + 1}</td>
+        <td>${escapeHtml(r.cliente.nombre)}</td>
+        <td>${r.comprasTotal}</td>
+        <td><strong>${r.puntosTotal}</strong></td>
+        <td>${r.fusionadosDe.length ? r.fusionadosDe.map(escapeHtml).join(', ') : '—'}</td>
+        <td><button class="small" data-action="asignar">Asignar referidor</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+
+    if (fusionados.length > 0) {
+      html += `<div style="margin-top:20px;"><label class="form-label">Fusiones activas</label>`;
+      fusionados.forEach(f => {
+        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border-radius:16px;margin-bottom:8px;">
+          <span>${escapeHtml(f.cliente.nombre)} → fusionado con <strong>${escapeHtml(f.fusionadoCon)}</strong></span>
+          <button class="small danger" data-unfuse-key="${escapeHtml(f.cliente.key)}">Quitar fusión</button>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    container.innerHTML = html;
+    container.querySelector('table').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-action="asignar"]');
+      if (!btn) return;
+      const key = btn.closest('tr').dataset.key;
+      abrirAsignarReferidor(key, todos);
+    });
+    container.querySelectorAll('button[data-unfuse-key]').forEach(btn => {
+      btn.addEventListener('click', () => quitarFusion(btn.dataset.unfuseKey));
+    });
+  }
+
+  function abrirAsignarReferidor(key, todosMap) {
+    const opciones = Array.from(todosMap.values())
+      .filter(r => r.cliente.key !== key)
+      .map(r => `<option value="${escapeHtml(r.cliente.key)}">${escapeHtml(r.cliente.nombre)}</option>`)
+      .join('');
+    const html = `
+      <h2>Asignar referidor</h2>
+      <p style="color:#aaa; font-size:0.85rem; margin-bottom:16px;">Los puntos de este cliente pasarán a quien elijas, incluyendo su historial completo.</p>
+      <select id="referidorSelect"><option value="">Selecciona un cliente</option>${opciones}</select>
+      <div class="button-group" style="margin-top:16px;">
+        <button id="guardarReferidorBtn" class="small">Guardar</button>
+        <button id="cancelarReferidorBtn" class="small danger">Cancelar</button>
+      </div>`;
+    showModal(html);
+    document.getElementById('guardarReferidorBtn').onclick = async () => {
+      const referidorKey = document.getElementById('referidorSelect').value;
+      if (!referidorKey) { showToast('Selecciona un cliente.', 'error'); return; }
+      const referidorNombre = todosMap.get(referidorKey)?.cliente.nombre || '';
+      const referidoNombre = todosMap.get(key)?.cliente.nombre || '';
+      const { error } = await adminSupabase.from('referidos').insert([{
+        referidor_key: referidorKey, referidor_nombre: referidorNombre,
+        referido_key: key, referido_nombre: referidoNombre,
+        activo: true, creado_en: new Date().toISOString()
+      }]);
+      if (error) { showToast('Error guardando: ' + error.message, 'error'); return; }
+      closeModal();
+      showToast('Fusión asignada.', 'success');
+      await refresh(['referidos']);
+    };
+    document.getElementById('cancelarReferidorBtn').onclick = closeModal;
+  }
+
+  function quitarFusion(key) {
+    showConfirm('¿Quitar esta fusión? Los puntos volverán a contarse por separado, recalculando todo el historial.', async () => {
+      const { error } = await adminSupabase.from('referidos').update({ activo: false }).eq('referido_key', key).eq('activo', true);
+      if (error) { showToast('Error: ' + error.message, 'error'); return; }
+      showToast('Fusión eliminada. Puntos recalculados.', 'success');
+      await refresh(['referidos']);
+    }, 'Quitar fusión');
   }
 
   // ================= GRÁFICAS =================
@@ -1109,7 +1497,7 @@
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     const activeTab = document.querySelector(`.tab[data-tab="${tabId}"]`);
     if (activeTab) activeTab.classList.add('active');
-    const panels = ['productosPanel', 'accesoriosPanel', 'solicitudesPanel', 'clientesPanel', 'ventasRegistradasPanel', 'reparacionesPanel', 'graficasPanel'];
+    const panels = ['productosPanel', 'accesoriosPanel', 'solicitudesPanel', 'clientesPanel', 'facturacionPanel', 'puntosPanel', 'ventasRegistradasPanel', 'reparacionesPanel', 'graficasPanel'];
     panels.forEach(pid => { const el = document.getElementById(pid); if (el) el.classList.add('hidden'); });
     const currentPanel = document.getElementById(`${tabId}Panel`);
     if (currentPanel) currentPanel.classList.remove('hidden');
