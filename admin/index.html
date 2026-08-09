@@ -1034,13 +1034,76 @@
     if (!panel) return;
     panel.innerHTML = `
       <div class="panel-toolbar">
-        <button id="addFacturaBtn" class="small">+ Nueva factura</button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button id="addFacturaBtn" class="small">+ Nueva factura</button>
+          <button id="facturaDesdeClienteBtn" class="small">📋 Desde cliente registrado</button>
+        </div>
         <input type="text" id="facturasSearch" class="search-input" placeholder="🔍 Buscar por cliente, producto o número...">
       </div>
       <div id="facturasTableContainer"></div>`;
     document.getElementById('addFacturaBtn').onclick = () => showFacturaForm();
+    document.getElementById('facturaDesdeClienteBtn').onclick = () => mostrarSelectorClienteParaFactura();
     document.getElementById('facturasSearch').addEventListener('input', (e) => renderFacturasTable(e.target.value));
     renderFacturasTable('');
+  }
+
+  // Permite elegir un cliente del historial (con sus compras ya confirmadas)
+  // y generar la factura de una compra puntual que nunca se facturo, sin
+  // depender de la seccion oculta "Ventas registradas".
+  function mostrarSelectorClienteParaFactura() {
+    const clientes = agruparClientes();
+    if (clientes.length === 0) { showToast('No hay clientes con compras registradas.', 'error'); return; }
+    const opcionesClientes = clientes.map((c, idx) => `<option value="${idx}">${escapeHtml(c.nombre)}${c.telefono ? ' · ' + escapeHtml(c.telefono) : ''}</option>`).join('');
+    const html = `
+      <h2>Generar factura desde cliente</h2>
+      <p style="color:#aaa; font-size:0.85rem; margin-bottom:16px;">Selecciona el cliente y la compra que quieres facturar. Los datos se prellenan automáticamente.</p>
+      <label class="form-label">Cliente</label>
+      <select id="clienteFacturaSelect"><option value="">Selecciona un cliente</option>${opcionesClientes}</select>
+      <label class="form-label">Compra</label>
+      <select id="compraFacturaSelect" disabled><option value="">Selecciona un cliente primero</option></select>
+      <div class="button-group" style="margin-top:20px;">
+        <button id="continuarFacturaClienteBtn" class="small">Continuar</button>
+        <button id="cancelarFacturaClienteBtn" class="small danger">Cancelar</button>
+      </div>`;
+    showModal(html);
+
+    const clienteSelect = document.getElementById('clienteFacturaSelect');
+    const compraSelect = document.getElementById('compraFacturaSelect');
+
+    clienteSelect.addEventListener('change', () => {
+      const idx = clienteSelect.value;
+      if (idx === '') {
+        compraSelect.disabled = true;
+        compraSelect.innerHTML = '<option value="">Selecciona un cliente primero</option>';
+        return;
+      }
+      const cliente = clientes[Number(idx)];
+      compraSelect.disabled = false;
+      compraSelect.innerHTML = '<option value="">Selecciona una compra</option>' + cliente.compras
+        .slice()
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+        .map((compra, cIdx) => `<option value="${cIdx}">${escapeHtml(compra.producto)} · ${new Date(compra.fecha).toLocaleDateString()} · ${formatCurrency(compra.precio * compra.cantidad)}</option>`)
+        .join('');
+    });
+
+    document.getElementById('continuarFacturaClienteBtn').onclick = () => {
+      const idx = clienteSelect.value;
+      if (idx === '') { showToast('Selecciona un cliente.', 'error'); return; }
+      const cIdx = compraSelect.value;
+      if (cIdx === '') { showToast('Selecciona una compra.', 'error'); return; }
+      const cliente = clientes[Number(idx)];
+      const compra = cliente.compras.slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[Number(cIdx)];
+      closeModal();
+      showFacturaForm({
+        producto: compra.producto,
+        cantidad: compra.cantidad,
+        precio: compra.precio,
+        fecha_venta: compra.fecha ? new Date(compra.fecha).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        cliente_nombre: cliente.nombre,
+        cliente_telefono: cliente.telefono || ''
+      });
+    };
+    document.getElementById('cancelarFacturaClienteBtn').onclick = closeModal;
   }
 
   function renderFacturasTable(query = '') {
@@ -1094,7 +1157,7 @@
   function showFacturaForm(prefill = null) {
     const p = prefill || {};
     const html = `
-      <h2>${p.venta_id ? 'Generar factura desde venta' : 'Nueva factura'}</h2>
+      <h2>${p.venta_id ? 'Generar factura desde venta' : (p.cliente_nombre ? 'Completar factura del cliente' : 'Nueva factura')}</h2>
       <label class="form-label">Número de factura</label>
       <input type="text" id="facNumero" value="${escapeHtml(generarNumeroFactura())}">
       <label class="form-label">Fecha de venta</label>
