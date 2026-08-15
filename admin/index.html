@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -908,6 +908,8 @@
         <td>${new Date(r.creado_en).toLocaleDateString()}</td>
         <td>
           <select class="status-select" data-action="estado">${opciones}</select>
+          <button class="small" data-action="editar">Editar</button>
+          <button class="small" data-action="factura">Generar factura</button>
           <button class="small danger" data-action="eliminar">Eliminar</button>
         </td>
       </tr>`;
@@ -915,10 +917,12 @@
     html += `</tbody></table></div>`;
     container.innerHTML = html;
     container.querySelector('table').addEventListener('click', (e) => {
-      const btn = e.target.closest('button[data-action="eliminar"]');
+      const btn = e.target.closest('button[data-action]');
       if (!btn) return;
       const id = Number(btn.closest('tr').dataset.id);
-      eliminarRep(id);
+      if (btn.dataset.action === 'eliminar') eliminarRep(id);
+      if (btn.dataset.action === 'editar') editarReparacion(id);
+      if (btn.dataset.action === 'factura') generarFacturaDesdeReparacion(id);
     });
     container.querySelector('table').addEventListener('change', (e) => {
       const sel = e.target.closest('select[data-action="estado"]');
@@ -940,6 +944,49 @@
       if (error) { showToast('Error eliminando: ' + error.message, 'error'); return; }
       showToast('Reparación eliminada.', 'success');
       await refresh(['reparaciones']);
+    });
+  }
+
+  function editarReparacion(id) {
+    const rep = reparaciones.find(r => r.id === id);
+    if (!rep) { showToast('Reparación no encontrada.', 'error'); return; }
+    const html = `
+      <h2>Editar reparación #${id}</h2>
+      <label class="form-label">Trabajo realizado / solución</label>
+      <input type="text" id="repSolucion" placeholder="Ej: Cambio de pantalla" value="${escapeHtml(rep.solucion || '')}">
+      <label class="form-label">Precio cobrado RD$</label>
+      <input type="number" id="repPrecio" min="0" value="${rep.precio || ''}">
+      <div class="button-group" style="margin-top:20px;">
+        <button id="guardarRepBtn" class="small">Guardar</button>
+        <button id="cancelarRepBtn" class="small danger">Cancelar</button>
+      </div>`;
+    showModal(html);
+    document.getElementById('guardarRepBtn').onclick = async () => {
+      const solucion = document.getElementById('repSolucion').value.trim();
+      const precioRaw = document.getElementById('repPrecio').value;
+      const precio = precioRaw === '' ? null : Number(precioRaw);
+      const { error } = await adminSupabase.from('reparaciones').update({ solucion, precio }).eq('id', id);
+      if (error) { showToast('Error guardando: ' + error.message, 'error'); return; }
+      closeModal();
+      showToast('Reparación actualizada.', 'success');
+      await refresh(['reparaciones']);
+    };
+    document.getElementById('cancelarRepBtn').onclick = closeModal;
+  }
+
+  function generarFacturaDesdeReparacion(id) {
+    const rep = reparaciones.find(r => r.id === id);
+    if (!rep) { showToast('Reparación no encontrada.', 'error'); return; }
+    showFacturaForm({
+      tipo: 'servicio',
+      dispositivo: `${rep.dispositivo || ''} ${rep.modelo || ''}`.trim(),
+      producto: rep.solucion || rep.problema || 'Reparación',
+      precio: rep.precio || '',
+      cantidad: 1,
+      fecha_venta: rep.creado_en ? new Date(rep.creado_en).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      cliente_nombre: rep.nombre || '',
+      cliente_telefono: rep.telefono || '',
+      reparacion_id: rep.id
     });
   }
 
@@ -1155,10 +1202,12 @@
       container.innerHTML = `<div class="empty-message">${facturas.length === 0 ? 'No hay facturas generadas todavía' : 'Sin resultados para tu búsqueda'}</div>`;
       return;
     }
-    let html = `<div class="table-wrapper"><table><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Vendedor</th><th>Total</th><th>Acciones</th></tr></thead><tbody>`;
+    let html = `<div class="table-wrapper"><table><thead><tr><th>Número</th><th>Tipo</th><th>Fecha</th><th>Cliente</th><th>Producto/Servicio</th><th>Vendedor</th><th>Total</th><th>Acciones</th></tr></thead><tbody>`;
     filtradas.forEach(f => {
+      const esServicio = f.tipo === 'servicio';
       html += `<tr data-id="${f.id}">
         <td>${escapeHtml(f.numero_factura)}</td>
+        <td><span class="status ${esServicio ? 'en_progreso' : 'completada'}">${esServicio ? 'Servicio' : 'Venta'}</span></td>
         <td>${f.fecha_venta ? new Date(f.fecha_venta).toLocaleDateString() : '—'}</td>
         <td>${escapeHtml(f.cliente_nombre)}</td>
         <td>${escapeHtml(f.producto)}</td>
@@ -1197,51 +1246,92 @@
 
   function showFacturaForm(prefill = null) {
     const p = prefill || {};
+    const tipoInicial = p.tipo || 'venta';
     const html = `
-      <h2>${p.venta_id ? 'Generar factura desde venta' : (p.cliente_nombre ? 'Completar factura del cliente' : 'Nueva factura')}</h2>
+      <h2>${p.venta_id ? 'Generar factura desde venta' : (p.reparacion_id ? 'Generar factura de servicio' : (p.cliente_nombre ? 'Completar factura del cliente' : 'Nueva factura'))}</h2>
+      <label class="form-label">Tipo de factura</label>
+      <select id="facTipo">
+        <option value="venta" ${tipoInicial === 'venta' ? 'selected' : ''}>Venta de equipo</option>
+        <option value="servicio" ${tipoInicial === 'servicio' ? 'selected' : ''}>Reparación / modificación</option>
+      </select>
       <label class="form-label">Número de factura</label>
       <input type="text" id="facNumero" value="${escapeHtml(generarNumeroFactura())}">
-      <label class="form-label">Fecha de venta</label>
+      <label class="form-label">Fecha</label>
       <input type="date" id="facFecha" value="${escapeHtml(p.fecha_venta || new Date().toISOString().split('T')[0])}">
-      <label class="form-label">Vendedor / quién despachó</label>
-      <input type="text" id="facVendedor" placeholder="Nombre del vendedor" value="${escapeHtml(currentUser?.email || '')}">
+      <label class="form-label">Vendedor / técnico que despachó</label>
+      <input type="text" id="facVendedor" placeholder="Nombre" value="${escapeHtml(currentUser?.email || '')}">
       <label class="form-label">Cliente</label>
       <input type="text" id="facCliente" placeholder="Nombre del cliente" value="${escapeHtml(p.cliente_nombre || '')}">
       <input type="text" id="facTelefono" placeholder="Teléfono (opcional)" value="${escapeHtml(p.cliente_telefono || '')}">
-      <label class="form-label">Equipo vendido</label>
-      <input type="text" id="facProducto" placeholder="Producto" value="${escapeHtml(p.producto || '')}">
+
+      <div id="campoDispositivo" class="imei-field ${tipoInicial === 'servicio' ? 'show' : ''}">
+        <label class="form-label">Dispositivo reparado / modificado</label>
+        <input type="text" id="facDispositivo" placeholder="Ej: iPhone 13 Pro" value="${escapeHtml(p.dispositivo || '')}">
+      </div>
+
+      <label class="form-label" id="labelProducto">${tipoInicial === 'servicio' ? 'Servicio realizado' : 'Equipo vendido'}</label>
+      <input type="text" id="facProducto" placeholder="${tipoInicial === 'servicio' ? 'Ej: Cambio de pantalla' : 'Producto'}" value="${escapeHtml(p.producto || '')}">
       <input type="number" id="facCantidad" placeholder="Cantidad" min="1" value="${p.cantidad || 1}">
-      <input type="number" id="facPrecio" placeholder="Precio unitario RD$" min="0" value="${p.precio || ''}">
-      <label class="form-label">Detalles para la factura (no se guardan en el catálogo)</label>
-      <input type="text" id="facColor" placeholder="Color">
-      <input type="text" id="facAlmacenamiento" placeholder="Almacenamiento (ej: 256GB)">
+      <input type="number" id="facPrecio" placeholder="Precio RD$" min="0" value="${p.precio || ''}">
+
+      <div id="campoVenta" class="imei-field ${tipoInicial === 'venta' ? 'show' : ''}">
+        <label class="form-label">Detalles para la factura (no se guardan en el catálogo)</label>
+        <input type="text" id="facColor" placeholder="Color">
+        <input type="text" id="facAlmacenamiento" placeholder="Almacenamiento (ej: 256GB)">
+      </div>
+
+      <div id="campoServicio" class="imei-field ${tipoInicial === 'servicio' ? 'show' : ''}">
+        <label class="form-label">Garantía del servicio (opcional)</label>
+        <input type="text" id="facGarantiaServicio" placeholder="Ej: 30 días">
+      </div>
+
       <div class="button-group" style="margin-top:20px;">
         <button id="guardarFacturaBtn" class="small">Generar factura</button>
         <button id="cancelarFacturaBtn" class="small danger">Cancelar</button>
       </div>`;
     showModal(html);
 
+    const tipoSelect = document.getElementById('facTipo');
+    const campoDispositivo = document.getElementById('campoDispositivo');
+    const campoVenta = document.getElementById('campoVenta');
+    const campoServicio = document.getElementById('campoServicio');
+    const labelProducto = document.getElementById('labelProducto');
+    const facProducto = document.getElementById('facProducto');
+
+    tipoSelect.addEventListener('change', () => {
+      const esServicio = tipoSelect.value === 'servicio';
+      campoDispositivo.classList.toggle('show', esServicio);
+      campoServicio.classList.toggle('show', esServicio);
+      campoVenta.classList.toggle('show', !esServicio);
+      labelProducto.textContent = esServicio ? 'Servicio realizado' : 'Equipo vendido';
+      facProducto.placeholder = esServicio ? 'Ej: Cambio de pantalla' : 'Producto';
+    });
+
     document.getElementById('guardarFacturaBtn').onclick = async () => {
+      const tipo = tipoSelect.value;
       const numero_factura = document.getElementById('facNumero').value.trim();
       const fecha_venta = document.getElementById('facFecha').value;
       const vendedor = document.getElementById('facVendedor').value.trim();
       const cliente_nombre = document.getElementById('facCliente').value.trim();
       const cliente_telefono = document.getElementById('facTelefono').value.trim();
-      const producto = document.getElementById('facProducto').value.trim();
+      const producto = facProducto.value.trim();
       const cantidad = parseInt(document.getElementById('facCantidad').value) || 1;
       const precio = Number(document.getElementById('facPrecio').value);
-      const color = document.getElementById('facColor').value.trim();
-      const almacenamiento = document.getElementById('facAlmacenamiento').value.trim();
+      const color = tipo === 'venta' ? document.getElementById('facColor').value.trim() : '';
+      const almacenamiento = tipo === 'venta' ? document.getElementById('facAlmacenamiento').value.trim() : '';
+      const dispositivo = tipo === 'servicio' ? document.getElementById('facDispositivo').value.trim() : '';
+      const garantia_servicio = tipo === 'servicio' ? document.getElementById('facGarantiaServicio').value.trim() : '';
 
       if (!numero_factura || !cliente_nombre || !producto || isNaN(precio) || precio < 0) {
-        showToast('Completa número de factura, cliente, producto y precio.', 'error');
+        showToast('Completa número de factura, cliente, ' + (tipo === 'servicio' ? 'servicio' : 'producto') + ' y precio.', 'error');
         return;
       }
 
       const facturaData = {
         numero_factura, fecha_venta, vendedor, cliente_nombre, cliente_telefono,
         producto, cantidad, precio, total: precio * cantidad,
-        color, almacenamiento, venta_id: p.venta_id || null,
+        color, almacenamiento, tipo, dispositivo, garantia_servicio,
+        venta_id: p.venta_id || null, reparacion_id: p.reparacion_id || null,
         creado_en: new Date().toISOString()
       };
       const { data: inserted, error } = await adminSupabase.from('facturas').insert([facturaData]).select();
@@ -1284,6 +1374,15 @@
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-bottom:20px;">
           <thead>
+            ${factura.tipo === 'servicio' ? `
+            <tr style="border-bottom:2px solid #111;">
+              <th style="text-align:left;padding:6px 4px;">Dispositivo</th>
+              <th style="text-align:left;padding:6px 4px;">Servicio realizado</th>
+              <th style="text-align:left;padding:6px 4px;">Garantía</th>
+              <th style="text-align:center;padding:6px 4px;">Cant.</th>
+              <th style="text-align:right;padding:6px 4px;">Precio</th>
+              <th style="text-align:right;padding:6px 4px;">Total</th>
+            </tr>` : `
             <tr style="border-bottom:2px solid #111;">
               <th style="text-align:left;padding:6px 4px;">Equipo</th>
               <th style="text-align:left;padding:6px 4px;">Color</th>
@@ -1291,9 +1390,18 @@
               <th style="text-align:center;padding:6px 4px;">Cant.</th>
               <th style="text-align:right;padding:6px 4px;">Precio unit.</th>
               <th style="text-align:right;padding:6px 4px;">Total</th>
-            </tr>
+            </tr>`}
           </thead>
           <tbody>
+            ${factura.tipo === 'servicio' ? `
+            <tr>
+              <td style="padding:8px 4px;">${escapeHtml(factura.dispositivo || '—')}</td>
+              <td style="padding:8px 4px;">${escapeHtml(factura.producto)}</td>
+              <td style="padding:8px 4px;">${escapeHtml(factura.garantia_servicio || '—')}</td>
+              <td style="text-align:center;padding:8px 4px;">${factura.cantidad}</td>
+              <td style="text-align:right;padding:8px 4px;">${formatCurrency(factura.precio)}</td>
+              <td style="text-align:right;padding:8px 4px;">${formatCurrency(factura.total)}</td>
+            </tr>` : `
             <tr>
               <td style="padding:8px 4px;">${escapeHtml(factura.producto)}</td>
               <td style="padding:8px 4px;">${escapeHtml(factura.color || '—')}</td>
@@ -1301,7 +1409,7 @@
               <td style="text-align:center;padding:8px 4px;">${factura.cantidad}</td>
               <td style="text-align:right;padding:8px 4px;">${formatCurrency(factura.precio)}</td>
               <td style="text-align:right;padding:8px 4px;">${formatCurrency(factura.total)}</td>
-            </tr>
+            </tr>`}
           </tbody>
         </table>
         <div style="text-align:right;font-size:1.1rem;font-weight:700;border-top:2px solid #111;padding-top:12px;">
